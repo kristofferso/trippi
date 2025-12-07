@@ -52,7 +52,7 @@ importers:
         version: 0.31.1
       drizzle-orm:
         specifier: ^0.43.1
-        version: 0.43.1(gel@2.1.0)(pg@8.16.3)(postgres@3.4.5)
+        version: 0.43.1(@types/pg@8.15.6)(gel@2.1.0)(pg@8.16.3)(postgres@3.4.5)
       framer-motion:
         specifier: ^12.23.25
         version: 12.23.25(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -95,6 +95,10 @@ importers:
       zod:
         specifier: ^3.24.4
         version: 3.24.4
+    devDependencies:
+      '@types/pg':
+        specifier: ^8.15.6
+        version: 8.15.6
 
 packages:
 
@@ -1586,6 +1590,9 @@ packages:
 
   '@types/node@22.15.18':
     resolution: {integrity: sha512-v1DKRfUdyW+jJhZNEI1PYy29S2YRxMV5AOO/x/SjKmW0acCIOqmbj6Haf9eHAhsPmrhlHSxEhv/1WszcLWV4cg==}
+
+  '@types/pg@8.15.6':
+    resolution: {integrity: sha512-NoaMtzhxOrubeL/7UZuNTrejB4MPAJ0RpxZqXQf2qXuVlTPuG6Y8p4u9dKRaue4yjmC7ZhzVO2/Yyyn25znrPQ==}
 
   '@types/react-dom@19.1.5':
     resolution: {integrity: sha512-CMCjrWucUBZvohgZxkjd6S9h0nZxXjzus6yDfUb+xLxYM7VvjKNH1tQrE9GWLql1XoOP4/Ds3bwFqShHUYraGg==}
@@ -3548,6 +3555,12 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
+  '@types/pg@8.15.6':
+    dependencies:
+      '@types/node': 22.15.18
+      pg-protocol: 1.10.3
+      pg-types: 2.2.0
+
   '@types/react-dom@19.1.5(@types/react@19.1.4)':
     dependencies:
       '@types/react': 19.1.4
@@ -3629,8 +3642,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.43.1(gel@2.1.0)(pg@8.16.3)(postgres@3.4.5):
+  drizzle-orm@0.43.1(@types/pg@8.15.6)(gel@2.1.0)(pg@8.16.3)(postgres@3.4.5):
     optionalDependencies:
+      '@types/pg': 8.15.6
       gel: 2.1.0
       pg: 8.16.3
       postgres: 3.4.5
