@@ -24,9 +24,9 @@ export default async function PostPage({
   if (!group) notFound();
 
   let session = await getSession(group.id);
-  if (!session && !group.passwordHash) {
-    session = await createSession(group.id, null);
-  }
+  // if (!session && !group.passwordHash) {
+  //   session = await createSession(group.id, null);
+  // }
   if (group.passwordHash && !session) {
     return <PasswordGate slug={group.slug} name={group.name} />;
   }

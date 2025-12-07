@@ -45,7 +45,7 @@ export function SiteHeader({
               className="flex items-center gap-2 transition-opacity hover:opacity-80"
             >
               <Image src={trippi} alt="" className="size-8" />
-              {!groupName && <p className="text-lg font-semibold">Trippi</p>}
+              {!groupName && <p className="text-lg font-bold">Trippi</p>}
             </Link>
           )}
 

@@ -29,9 +29,6 @@ export default async function GroupFeedPage({
   if (!group) notFound();
 
   let session = (await getSession(group.id)) as Session | null;
-  if (!session && !group.passwordHash) {
-    session = await createSession(group.id, null);
-  }
 
   if (group.passwordHash && !session) {
     return <PasswordGate slug={group.slug} name={group.name} />;

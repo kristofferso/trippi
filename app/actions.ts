@@ -109,18 +109,35 @@ export async function joinGroupBySlug(
 export async function createGroup(
   slug: string,
   name: string,
+  displayName: string,
   password?: string
 ) {
   const existing = await db.query.groups.findFirst({
     where: eq(groups.slug, slug),
   });
   if (existing) return { error: "Slug already taken" };
+
+  const parsed = displayNameSchema.safeParse({ displayName });
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0]?.message ?? "Invalid name" };
+  }
+
   const passwordHash = password ? await hashPassword(password) : null;
   const [inserted] = await db
     .insert(groups)
     .values({ slug, name, passwordHash })
     .returning();
-  await createSession(inserted.id, null);
+
+  const [member] = await db
+    .insert(groupMembers)
+    .values({
+      groupId: inserted.id,
+      displayName: parsed.data.displayName,
+      isAdmin: true,
+    })
+    .returning();
+
+  await createSession(inserted.id, member.id);
   return { success: true, groupId: inserted.id };
 }
 

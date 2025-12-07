@@ -78,9 +78,11 @@ export default function LandingPage() {
               </div>
               <p className="mt-2 text-xs text-slate-400">
                 e.g.{" "}
-                <span className="font-medium text-slate-600">iceland-2024</span>{" "}
+                <span className="font-medium text-slate-600">iceland-2025</span>{" "}
                 or{" "}
-                <span className="font-medium text-slate-600">summer-vibes</span>
+                <span className="font-medium text-slate-600">
+                  trippiest-trip
+                </span>
               </p>
             </form>
 
@@ -118,6 +120,7 @@ export default function LandingPage() {
 function CreateGroupDialog() {
   const [slug, setSlug] = useState("");
   const [name, setName] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -126,7 +129,12 @@ function CreateGroupDialog() {
   const handleCreate = async () => {
     setError(null);
     startTransition(async () => {
-      const res = await createGroup(slug, name, password || undefined);
+      const res = await createGroup(
+        slug,
+        name,
+        displayName,
+        password || undefined
+      );
       if (res?.error) {
         setError(res.error);
         return;
@@ -166,6 +174,15 @@ function CreateGroupDialog() {
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="displayName">Your Name</Label>
+            <Input
+              id="displayName"
+              placeholder="Jane Doe"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="slug">Group code</Label>
             <div className="flex items-center gap-2">
               <span className="text-sm text-slate-400">
@@ -195,7 +212,7 @@ function CreateGroupDialog() {
         ) : null}
         <Button
           onClick={handleCreate}
-          disabled={pending || !name || !slug}
+          disabled={pending || !name || !slug || !displayName}
           className="w-full"
         >
           {pending ? "Creating..." : "Create Trip"}
