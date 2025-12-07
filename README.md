@@ -107,6 +107,9 @@ In your Vercel project settings (or during deployment), add all the necessary en
 3. `STRIPE_WEBHOOK_SECRET`: Use the webhook secret from the production webhook you created in step 1.
 4. `POSTGRES_URL`: Set this to your production database URL.
 5. `AUTH_SECRET`: Set this to a random string. `openssl rand -base64 32` will generate one.
+6. `BLOB_READ_WRITE_TOKEN`: Needed for uploading videos to Vercel Blob storage. Create a Blob store in your Vercel dashboard
+   (or via the Vercel CLI) and add a read/write token to your environment variables so `@vercel/blob` can call
+   `put()` when handling uploads.
 
 ## Other Templates
 
