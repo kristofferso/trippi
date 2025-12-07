@@ -54,16 +54,11 @@ export function CommentForm({ postId, parentId, onSuccess, autoFocus }: Props) {
           autoFocus={autoFocus}
         />
         {hasContent && (
-          <div className="flex items-center justify-between bg-white px-2 py-2 animate-in fade-in slide-in-from-top-1">
+          <div className="flex items-center justify-between py-2 animate-in fade-in slide-in-from-top-1">
             <div className="text-xs text-slate-400">
               {/* Optional: Add markdown hint or emoji picker trigger later */}
             </div>
-            <Button
-              type="submit"
-              size="sm"
-              disabled={pending || !text.trim()}
-              className="h-8 px-4"
-            >
+            <Button type="submit" size="sm" disabled={pending || !text.trim()}>
               {pending
                 ? parentId
                   ? "Replying..."

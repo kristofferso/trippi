@@ -1,7 +1,7 @@
 "use server";
 
 import { put } from "@vercel/blob";
-import { count, eq } from "drizzle-orm";
+import { count, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
@@ -265,4 +265,19 @@ export async function deleteMember(memberId: string) {
   if (admin.member.id === memberId) return { error: "Cannot remove yourself" };
   await db.delete(groupMembers).where(eq(groupMembers.id, memberId));
   return { success: true };
+}
+
+export async function getGroupMembers(groupId: string) {
+  const session = await getSession(groupId);
+  if (!session) return [];
+
+  return db
+    .select({
+      id: groupMembers.id,
+      displayName: groupMembers.displayName,
+      isAdmin: groupMembers.isAdmin,
+    })
+    .from(groupMembers)
+    .where(eq(groupMembers.groupId, groupId))
+    .orderBy(desc(groupMembers.createdAt));
 }

@@ -1,151 +1,206 @@
-'use client';
+"use client";
 
-import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { ArrowRight, Sparkles, Map, Globe2, Plus } from "lucide-react";
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { createGroup, joinGroupBySlug } from './actions';
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { SiteHeader } from "@/components/site-header";
+import { createGroup } from "./actions";
+import hero from "@/public/hero.png";
 
 export default function LandingPage() {
+  const router = useRouter();
+  const [slug, setSlug] = useState("");
+
+  const handleJoin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (slug.trim()) {
+      router.push(`/g/${slug.trim()}`);
+    }
+  };
+
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <div className="space-y-4">
-        <h1 className="text-3xl font-bold">Start a private circle</h1>
-        <p className="text-muted-foreground">
-          Create a private, invite-only feed for your closest people. Admins can post, everyone can
-          comment and react with emojis.
-        </p>
-        <ul className="list-disc space-y-1 pl-5 text-muted-foreground text-sm">
-          <li>Optional group password for extra privacy.</li>
-          <li>Identity is just a display name (email optional).</li>
-          <li>Posts support text, titles, and optional videos.</li>
-        </ul>
-      </div>
-      <div className="grid gap-4">
-        <JoinCard />
-        <CreateGroupCard />
-      </div>
-    </div>
+    <>
+      <SiteHeader />
+      <main className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center p-4 sm:p-8">
+        <div className="mx-auto flex max-w-md flex-col items-center space-y-8 text-center">
+          <div className="relative">
+            <div className="absolute -inset-1 animate-pulse rounded-full " />
+            <Image
+              src={hero}
+              alt="Trippi Logo"
+              className="relative size-60 -scale-x-100"
+              priority
+            />
+          </div>
+
+          <div className="space-y-4">
+            <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+              Trippi
+            </h1>
+            <p className="text-lg text-slate-600 sm:text-xl">
+              The simplest way to log your travels and share it with your inner
+              circle.
+            </p>
+          </div>
+
+          <div className="w-full space-y-4">
+            <form onSubmit={handleJoin} className="group relative">
+              <div className="relative flex items-center">
+                <Input
+                  placeholder="Enter a group code..."
+                  className="h-12 rounded-full border-slate-200 bg-white px-6 pr-12 shadow-sm transition-all focus-visible:border-slate-400 focus-visible:ring-0 group-hover:shadow-md"
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value)}
+                  autoFocus
+                />
+                <Button
+                  size="icon"
+                  type="submit"
+                  disabled={!slug.trim()}
+                  className="absolute right-1 top-1 h-10 w-10 rounded-full transition-transform active:scale-95"
+                >
+                  <ArrowRight className="h-5 w-5" />
+                  <span className="sr-only">Go</span>
+                </Button>
+              </div>
+              <p className="mt-2 text-xs text-slate-400">
+                e.g.{" "}
+                <span className="font-medium text-slate-600">iceland-2024</span>{" "}
+                or{" "}
+                <span className="font-medium text-slate-600">summer-vibes</span>
+              </p>
+            </form>
+
+            <div className="relative flex items-center py-2">
+              <div className="flex-grow border-t border-slate-200"></div>
+              <span className="mx-4 flex-shrink-0 text-xs text-slate-400">
+                OR
+              </span>
+              <div className="flex-grow border-t border-slate-200"></div>
+            </div>
+
+            <CreateGroupDialog />
+          </div>
+
+          <div className="grid grid-cols-3 gap-8 pt-8 text-slate-400">
+            <div className="flex flex-col items-center gap-2">
+              <Sparkles className="h-6 w-6" />
+              <span className="text-xs font-medium">Private</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <Map className="h-6 w-6" />
+              <span className="text-xs font-medium">Simple</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <Globe2 className="h-6 w-6" />
+              <span className="text-xs font-medium">Shared</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    </>
   );
 }
 
-function JoinCard() {
-  const [slug, setSlug] = useState('');
-  const [password, setPassword] = useState('');
-  const [message, setMessage] = useState<string | null>(null);
+function CreateGroupDialog() {
+  const [slug, setSlug] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
-  const handleSubmit = () => {
-    setMessage(null);
+  const handleCreate = async () => {
+    setError(null);
     startTransition(async () => {
-      const result = await joinGroupBySlug(slug.trim(), password);
-      if (result?.error) {
-        setMessage(result.error);
+      const res = await createGroup(slug, name, password || undefined);
+      if (res?.error) {
+        setError(res.error);
         return;
       }
-      router.push(`/g/${slug.trim()}`);
+      if (res?.success) {
+        router.push(`/g/${slug}`);
+      }
     });
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Join a group</CardTitle>
-        <CardDescription>Enter the group slug and password if needed.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="space-y-1">
-          <Label htmlFor="join-slug">Slug</Label>
-          <Input
-            id="join-slug"
-            placeholder="e.g. hansen-family"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="join-password">Password (optional)</Label>
-          <Input
-            id="join-password"
-            type="password"
-            placeholder="Only if the group is locked"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
-        {message ? <p className="text-sm text-destructive">{message}</p> : null}
-        <Button className="w-full" onClick={handleSubmit} disabled={pending}>
-          {pending ? 'Joining...' : 'Join group'}
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          className="h-12 w-full rounded-full border-slate-200 bg-white/50 text-base font-medium text-slate-700 hover:bg-white hover:text-slate-900"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Start a new trip
         </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-function CreateGroupCard() {
-  const [slug, setSlug] = useState('');
-  const [name, setName] = useState('');
-  const [password, setPassword] = useState('');
-  const [message, setMessage] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-  const router = useRouter();
-
-  const handleSubmit = () => {
-    setMessage(null);
-    startTransition(async () => {
-      const result = await createGroup(slug.trim(), name.trim(), password || undefined);
-      if (result?.error) {
-        setMessage(result.error);
-        return;
-      }
-      router.push(`/g/${slug.trim()}`);
-    });
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create a group</CardTitle>
-        <CardDescription>Pick a friendly slug, add an optional password, and share the link.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="space-y-1">
-          <Label htmlFor="create-name">Group name</Label>
-          <Input
-            id="create-name"
-            placeholder="My crew"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Start a new trip</DialogTitle>
+          <DialogDescription>
+            Create a shared space for your next adventure.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Trip Name</Label>
+            <Input
+              id="name"
+              placeholder="e.g. Summer in Italy"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="slug">Group code</Label>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-400">
+                {process.env.NEXT_PUBLIC_VERCEL_URL || "trippi.dev"}/
+              </span>
+              <Input
+                id="slug"
+                placeholder="summer-italy"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password (Optional)</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Keep it secret"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="create-slug">Slug</Label>
-          <Input
-            id="create-slug"
-            placeholder="crew"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="create-password">Password (optional)</Label>
-          <Input
-            id="create-password"
-            type="password"
-            placeholder="Leave blank to keep open"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
-        {message ? <p className="text-sm text-destructive">{message}</p> : null}
-        <Button className="w-full" onClick={handleSubmit} disabled={pending || !slug || !name}>
-          {pending ? 'Creating...' : 'Create group'}
+        {error ? (
+          <p className="text-sm text-destructive mb-4">{error}</p>
+        ) : null}
+        <Button
+          onClick={handleCreate}
+          disabled={pending || !name || !slug}
+          className="w-full"
+        >
+          {pending ? "Creating..." : "Create Trip"}
         </Button>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 }

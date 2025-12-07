@@ -1,17 +1,26 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, useOptimistic } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 
 import { addReaction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { applyOptimisticReaction, setNameDialogOpen, useUIState } from "@/lib/store";
+import { Input } from "@/components/ui/input";
+import { setNameDialogOpen } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { EmojiRain } from "@/components/emoji-rain";
 
@@ -27,38 +36,38 @@ type Props = {
 
 export function ReactionBar({ postId, counts }: Props) {
   const router = useRouter();
-  const optimistic = useUIState(
-    (state) => state.optimisticReactions[postId] ?? {}
+  const [optimisticCounts, addOptimisticReaction] = useOptimistic(
+    counts,
+    (state, newEmoji: string) => ({
+      ...state,
+      [newEmoji]: (state[newEmoji] ?? 0) + 1,
+    })
   );
-  
-  const mergedCounts = useMemo(() => {
-    const merged: Record<string, number> = { ...counts };
-    for (const [emoji, value] of Object.entries(optimistic)) {
-      merged[emoji] = (merged[emoji] ?? 0) + value;
-    }
-    return merged;
-  }, [counts, optimistic]);
 
   const activeReactions = useMemo(() => {
-    return Object.entries(mergedCounts)
+    return Object.entries(optimisticCounts)
       .filter(([_, count]) => count > 0)
-      .sort((a, b) => b[1] - a[1]);
-  }, [mergedCounts]);
+      .sort((a, b) => a[0].localeCompare(b[0]));
+  }, [optimisticCounts]);
 
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [activeEmoji, setActiveEmoji] = useState<string | null>(null);
+  const [customEmoji, setCustomEmoji] = useState("");
 
   const handleReact = (emoji: string) => {
     setMessage(null);
     setPopoverOpen(false);
+    setDialogOpen(false);
+    setCustomEmoji("");
 
     setActiveEmoji(null);
     setTimeout(() => setActiveEmoji(emoji), 10);
 
-    applyOptimisticReaction(postId, emoji);
     startTransition(async () => {
+      addOptimisticReaction(emoji);
       const result = await addReaction(postId, emoji);
       if (result?.needsProfile) {
         setNameDialogOpen(true, { type: "reaction", postId, emoji });
@@ -123,6 +132,57 @@ export function ReactionBar({ postId, counts }: Props) {
                     {emoji}
                   </button>
                 ))}
+                
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                  <DialogTrigger asChild>
+                    <button
+                      className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-slate-100 text-lg transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      type="button"
+                    >
+                      <Plus className="h-4 w-4 text-slate-500" />
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Add Custom Reaction</DialogTitle>
+                      <DialogDescription>
+                        Enter a single emoji to react to this post.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (customEmoji) {
+                          handleReact(customEmoji);
+                        }
+                      }}
+                      className="flex items-center gap-4 py-4"
+                    >
+                      <div className="relative flex-1">
+                        <Input
+                          id="emoji"
+                          className="text-center text-4xl h-20"
+                          value={customEmoji}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const chars = [...val];
+                            if (chars.length > 0) {
+                              setCustomEmoji(chars[chars.length - 1]);
+                            } else {
+                              setCustomEmoji("");
+                            }
+                          }}
+                          placeholder="🔥"
+                          autoFocus
+                          maxLength={2}
+                        />
+                      </div>
+                      <Button type="submit" size="lg" disabled={!customEmoji || pending}>
+                        React
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
               </div>
             </PopoverContent>
           </Popover>

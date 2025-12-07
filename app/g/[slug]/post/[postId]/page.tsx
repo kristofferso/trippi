@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { asc, count, eq } from "drizzle-orm";
+import { desc, count, eq } from "drizzle-orm";
 
 import { PasswordGate } from "@/components/password-gate";
 import { NameDialog } from "@/components/name-dialog";
@@ -16,7 +16,8 @@ export default async function PostPage({
 }: {
   params: Promise<{ slug: string; postId: string }>;
 }) {
-  const { slug, postId } = await params;
+  const slug = (await params).slug;
+  const postId = (await params).postId;
   const group = await db.query.groups.findFirst({
     where: eq(groups.slug, slug),
   });
@@ -62,7 +63,7 @@ export default async function PostPage({
     .from(comments)
     .innerJoin(groupMembers, eq(comments.memberId, groupMembers.id))
     .where(eq(comments.postId, post.id))
-    .orderBy(asc(comments.createdAt));
+    .orderBy(desc(comments.createdAt));
   const commentsWithAuthors: CommentWithAuthor[] = commentRows.map(
     (comment) => ({
       id: comment.id,
@@ -77,67 +78,65 @@ export default async function PostPage({
   );
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="mx-auto max-w-4xl px-4 py-8 md:px-6 md:py-12">
-        <header className="mb-8 space-y-4">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-              {post.title || "Untitled Post"}
-            </h1>
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <span className="font-medium text-slate-900">{group.name}</span>
-              <span>•</span>
-              <time dateTime={new Date(post.createdAt).toISOString()}>
-                {formatDate(post.createdAt)}
-              </time>
-            </div>
+    <>
+      <header className="mb-8 space-y-4">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
+            {post.title || "Untitled Post"}
+          </h1>
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <span className="font-medium text-slate-900">{group.name}</span>
+            <span>•</span>
+            <time dateTime={new Date(post.createdAt).toISOString()}>
+              {formatDate(post.createdAt)}
+            </time>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <main className="space-y-8">
-          <div className="flex flex-col gap-8 md:flex-row md:gap-12">
-            <div className="flex-1 space-y-8">
-              {post.body && (
-                <div className="prose prose-slate max-w-none text-lg text-slate-700">
-                  <p>{post.body}</p>
-                </div>
-              )}
-
-              {post.videoUrl && (
-                <div className="overflow-hidden rounded-xl bg-slate-900 shadow-2xl ring-1 ring-slate-900/10">
-                  <video
-                    src={post.videoUrl}
-                    controls
-                    className="aspect-video w-full"
-                    poster={post.videoUrl + "#t=0.1"}
-                  />
-                </div>
-              )}
-
-              <div className="w-full py-2">
-                <ReactionBar postId={post.id} counts={reactionCounts} />
+      <main className="space-y-8">
+        <div className="flex flex-col gap-8 md:flex-row md:gap-12">
+          <div className="flex-1 space-y-8">
+            {post.body && (
+              <div className="prose prose-slate max-w-none text-lg text-slate-700">
+                <p>{post.body}</p>
               </div>
-            </div>
+            )}
 
-            <div className="w-full space-y-8 border-t pt-8 md:w-[350px] md:border-t-0 md:pt-0">
-              <div className="sticky top-8 space-y-6">
-                <div>
-                  <h2 className="mb-4 text-lg font-semibold text-slate-900">
-                    Comments ({commentsWithAuthors.length})
-                  </h2>
-                  <CommentForm postId={post.id} />
-                </div>
-                <CommentList
-                  comments={commentsWithAuthors}
-                  isAdmin={isAdmin}
-                  postId={post.id}
+            {post.videoUrl && (
+              <div className="overflow-hidden rounded-xl bg-slate-900 shadow-2xl ring-1 ring-slate-900/10">
+                <video
+                  src={post.videoUrl}
+                  controls
+                  className="aspect-video w-full"
+                  poster={post.videoUrl + "#t=0.1"}
                 />
               </div>
+            )}
+
+            <div className="w-full py-2">
+              <ReactionBar postId={post.id} counts={reactionCounts} />
             </div>
           </div>
-        </main>
-      </div>
+
+          <div className="w-full space-y-8 border-t pt-8 md:w-[350px] md:border-t-0 md:pt-0">
+            <div className="sticky top-8 space-y-6">
+              <div>
+                <h2 className="mb-4 text-lg font-semibold text-slate-900">
+                  Comments ({commentsWithAuthors.length})
+                </h2>
+                <CommentForm postId={post.id} />
+              </div>
+              <CommentList
+                comments={commentsWithAuthors}
+                isAdmin={isAdmin}
+                postId={post.id}
+              />
+            </div>
+          </div>
+        </div>
+      </main>
       <NameDialog />
-    </div>
+    </>
   );
 }

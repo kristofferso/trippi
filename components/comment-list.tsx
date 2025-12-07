@@ -64,12 +64,12 @@ export function CommentList({ comments, isAdmin, postId }: Props) {
             </span>
           </div>
 
-          <div className="relative">
-            <div className="w-fit max-w-[85%] rounded-2xl rounded-tl-sm bg-slate-100 px-4 py-2 text-slate-900">
+          <div className="flex items-center gap-2">
+            <div className="w-fit max-w-[calc(100%-88px)] rounded-2xl rounded-tl-sm bg-slate-100 px-4 py-2 text-slate-900">
               <p className="text-sm leading-relaxed">{comment.text}</p>
             </div>
             
-            <div className="absolute -right-2 top-1/2 flex -translate-y-1/2 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+            <div className="flex shrink-0 items-center gap-1">
               <Button
                 variant="ghost"
                 size="icon"
@@ -146,13 +146,13 @@ export function CommentList({ comments, isAdmin, postId }: Props) {
                     </span>
                   </div>
                   
-                  <div className="relative">
-                    <div className="w-fit max-w-[90%] rounded-2xl rounded-tl-sm bg-slate-50 px-3 py-2 text-slate-800">
+                  <div className="flex items-center gap-2">
+                    <div className="w-fit max-w-[calc(100%-48px)] rounded-2xl rounded-tl-sm bg-slate-50 px-3 py-2 text-slate-800">
                       <p className="text-sm leading-relaxed">{reply.text}</p>
                     </div>
 
                     {isAdmin && (
-                      <div className="absolute -right-2 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100">
+                      <div className="flex shrink-0 items-center">
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button 
