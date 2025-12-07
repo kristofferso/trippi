@@ -12,6 +12,8 @@ import { Label } from '@/components/ui/label';
 export function PasswordGate({ slug, name }: { slug: string; name: string }) {
   const router = useRouter();
   const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -19,7 +21,7 @@ export function PasswordGate({ slug, name }: { slug: string; name: string }) {
     event.preventDefault();
     setMessage(null);
     startTransition(async () => {
-      const result = await joinGroupBySlug(slug, password);
+      const result = await joinGroupBySlug(slug, password, displayName, email);
       if (result?.error) {
         setMessage(result.error);
         return;
@@ -31,26 +33,52 @@ export function PasswordGate({ slug, name }: { slug: string; name: string }) {
   return (
     <Card className="mx-auto max-w-md">
       <CardHeader>
-        <CardTitle>Enter password</CardTitle>
+        <CardTitle>Join {name}</CardTitle>
         <CardDescription>
-          <span className="font-semibold">{name}</span> is locked. Enter the shared password to continue.
+          Enter the password and your details to join the group.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Group Password</Label>
             <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Group password"
+              placeholder="Shared password"
             />
           </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="displayName">Display Name</Label>
+            <Input
+              id="displayName"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Jane Doe"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="email">Email (Optional)</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+            />
+          </div>
+
           {message ? <p className="text-sm text-destructive">{message}</p> : null}
-          <Button type="submit" className="w-full" disabled={pending || !password.trim()}>
-            {pending ? 'Checking...' : 'Join group'}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={pending || !password.trim() || !displayName.trim()}
+          >
+            {pending ? 'Joining...' : 'Join Group'}
           </Button>
         </form>
       </CardContent>

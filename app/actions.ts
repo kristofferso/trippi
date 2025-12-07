@@ -1,36 +1,34 @@
-'use server';
+"use server";
 
-import { put } from '@vercel/blob';
-import { count, eq } from 'drizzle-orm';
-import { z } from 'zod';
+import { put } from "@vercel/blob";
+import { count, eq } from "drizzle-orm";
+import { z } from "zod";
 
-import { db } from '@/db';
+import { db } from "@/db";
+import { comments, groupMembers, groups, posts, reactions } from "@/db/schema";
 import {
-  comments,
-  groupMembers,
-  groups,
-  posts,
-  reactions,
-} from '@/db/schema';
-import { attachMemberToSession, createSession, getSession } from '@/lib/session';
-import { hashPassword, verifyPassword } from '@/lib/password';
+  attachMemberToSession,
+  createSession,
+  getSession,
+} from "@/lib/session";
+import { hashPassword, verifyPassword } from "@/lib/password";
 
 const displayNameSchema = z.object({
-  displayName: z.string().min(2, 'Please enter a name'),
-  email: z.string().email().optional().or(z.literal('')), // allow empty string
+  displayName: z.string().min(2, "Please enter a name"),
+  email: z.string().email().optional().or(z.literal("")), // allow empty string
 });
 
 async function uploadVideoToStorage(file: File) {
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (!token) {
-    throw new Error('Missing BLOB_READ_WRITE_TOKEN environment variable.');
+    throw new Error("Missing BLOB_READ_WRITE_TOKEN environment variable.");
   }
 
-  const sanitizedName = file.name.replace(/\s+/g, '-');
+  const sanitizedName = file.name.replace(/\s+/g, "-");
   const objectKey = `uploads/${Date.now()}-${sanitizedName}`;
 
   const blob = await put(objectKey, file, {
-    access: 'public',
+    access: "public",
     token,
   });
 
@@ -38,7 +36,9 @@ async function uploadVideoToStorage(file: File) {
 }
 
 async function getMember(memberId: string) {
-  return db.query.groupMembers.findFirst({ where: eq(groupMembers.id, memberId) });
+  return db.query.groupMembers.findFirst({
+    where: eq(groupMembers.id, memberId),
+  });
 }
 
 async function ensureSessionForGroup(groupId: string) {
@@ -55,10 +55,17 @@ async function ensureAdmin(groupId: string) {
   return { session, member };
 }
 
-export async function joinGroupBySlug(slug: string, password?: string) {
-  const group = await db.query.groups.findFirst({ where: eq(groups.slug, slug) });
+export async function joinGroupBySlug(
+  slug: string,
+  password?: string,
+  displayName?: string,
+  email?: string
+) {
+  const group = await db.query.groups.findFirst({
+    where: eq(groups.slug, slug),
+  });
   if (!group) {
-    return { error: 'Group not found' };
+    return { error: "Group not found" };
   }
 
   const existingSession = await getSession(group.id);
@@ -67,18 +74,47 @@ export async function joinGroupBySlug(slug: string, password?: string) {
   }
 
   if (group.passwordHash) {
-    if (!password) return { error: 'Password required' };
+    if (!password) return { error: "Password required" };
     const ok = await verifyPassword(group.passwordHash, password);
-    if (!ok) return { error: 'Invalid password' };
+    if (!ok) return { error: "Invalid password" };
   }
 
-  await createSession(group.id, null);
+  let memberId: string | null = null;
+  if (displayName) {
+    const parsed = displayNameSchema.safeParse({ displayName, email });
+    if (!parsed.success) {
+      return { error: parsed.error.errors[0]?.message ?? "Invalid input" };
+    }
+    const memberCount = await db
+      .select({ value: count() })
+      .from(groupMembers)
+      .where(eq(groupMembers.groupId, group.id));
+    const isAdmin = (memberCount[0]?.value ?? 0) === 0;
+    const [member] = await db
+      .insert(groupMembers)
+      .values({
+        groupId: group.id,
+        displayName: parsed.data.displayName,
+        email: parsed.data.email || null,
+        isAdmin,
+      })
+      .returning();
+    memberId = member.id;
+  }
+
+  await createSession(group.id, memberId);
   return { success: true, groupId: group.id };
 }
 
-export async function createGroup(slug: string, name: string, password?: string) {
-  const existing = await db.query.groups.findFirst({ where: eq(groups.slug, slug) });
-  if (existing) return { error: 'Slug already taken' };
+export async function createGroup(
+  slug: string,
+  name: string,
+  password?: string
+) {
+  const existing = await db.query.groups.findFirst({
+    where: eq(groups.slug, slug),
+  });
+  if (existing) return { error: "Slug already taken" };
   const passwordHash = password ? await hashPassword(password) : null;
   const [inserted] = await db
     .insert(groups)
@@ -91,10 +127,10 @@ export async function createGroup(slug: string, name: string, password?: string)
 export async function setDisplayName(displayName: string, email?: string) {
   const parsed = displayNameSchema.safeParse({ displayName, email });
   if (!parsed.success) {
-    return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+    return { error: parsed.error.errors[0]?.message ?? "Invalid input" };
   }
   const session = await getSession();
-  if (!session) return { error: 'No active session' };
+  if (!session) return { error: "No active session" };
   const memberCount = await db
     .select({ value: count() })
     .from(groupMembers)
@@ -115,14 +151,14 @@ export async function setDisplayName(displayName: string, email?: string) {
 }
 
 export async function createPostWithOptionalVideo(formData: FormData) {
-  const title = formData.get('title')?.toString() || null;
-  const body = formData.get('body')?.toString() || null;
-  const maybeFile = formData.get('video');
+  const title = formData.get("title")?.toString() || null;
+  const body = formData.get("body")?.toString() || null;
+  const maybeFile = formData.get("video");
   const session = await getSession();
-  if (!session?.memberId) return { error: 'Not signed in for this group' };
+  if (!session?.memberId) return { error: "Not signed in for this group" };
 
   const member = await getMember(session.memberId);
-  if (!member || !member.isAdmin) return { error: 'Admins only' };
+  if (!member || !member.isAdmin) return { error: "Admins only" };
 
   let videoUrl: string | null = null;
   if (maybeFile instanceof File && maybeFile.size > 0) {
@@ -130,7 +166,7 @@ export async function createPostWithOptionalVideo(formData: FormData) {
       videoUrl = await uploadVideoToStorage(maybeFile);
     } catch (error) {
       console.error(error);
-      return { error: 'Failed to upload video' };
+      return { error: "Failed to upload video" };
     }
   }
 
@@ -145,13 +181,14 @@ export async function createPostWithOptionalVideo(formData: FormData) {
 }
 
 export async function postComment(postId: string, text: string) {
-  if (!text.trim()) return { error: 'Please write a comment' };
+  if (!text.trim()) return { error: "Please write a comment" };
   const session = await getSession();
-  if (!session) return { error: 'No session', needsProfile: false };
-  if (!session.memberId) return { error: 'Need display name', needsProfile: true };
+  if (!session) return { error: "No session", needsProfile: false };
+  if (!session.memberId)
+    return { error: "Need display name", needsProfile: true };
   const post = await db.query.posts.findFirst({ where: eq(posts.id, postId) });
   if (!post || post.groupId !== session.groupId)
-    return { error: 'Post not found in this group' };
+    return { error: "Post not found in this group" };
 
   await db.insert(comments).values({
     postId,
@@ -162,13 +199,14 @@ export async function postComment(postId: string, text: string) {
 }
 
 export async function addReaction(postId: string, emoji: string) {
-  if (!emoji) return { error: 'Pick an emoji' };
+  if (!emoji) return { error: "Pick an emoji" };
   const session = await getSession();
-  if (!session) return { error: 'No session', needsProfile: false };
-  if (!session.memberId) return { error: 'Need display name', needsProfile: true };
+  if (!session) return { error: "No session", needsProfile: false };
+  if (!session.memberId)
+    return { error: "Need display name", needsProfile: true };
   const post = await db.query.posts.findFirst({ where: eq(posts.id, postId) });
   if (!post || post.groupId !== session.groupId)
-    return { error: 'Post not found in this group' };
+    return { error: "Post not found in this group" };
 
   await db.insert(reactions).values({
     postId,
@@ -179,22 +217,26 @@ export async function addReaction(postId: string, emoji: string) {
 }
 
 export async function deleteComment(commentId: string) {
-  const comment = await db.query.comments.findFirst({ where: eq(comments.id, commentId) });
-  if (!comment) return { error: 'Comment missing' };
-  const post = await db.query.posts.findFirst({ where: eq(posts.id, comment.postId) });
-  if (!post) return { error: 'Post missing' };
+  const comment = await db.query.comments.findFirst({
+    where: eq(comments.id, commentId),
+  });
+  if (!comment) return { error: "Comment missing" };
+  const post = await db.query.posts.findFirst({
+    where: eq(posts.id, comment.postId),
+  });
+  if (!post) return { error: "Post missing" };
   const admin = await ensureAdmin(post.groupId);
-  if (!admin) return { error: 'Admins only' };
+  if (!admin) return { error: "Admins only" };
   await db.delete(comments).where(eq(comments.id, commentId));
   return { success: true };
 }
 
 export async function deleteMember(memberId: string) {
   const member = await getMember(memberId);
-  if (!member) return { error: 'Member missing' };
+  if (!member) return { error: "Member missing" };
   const admin = await ensureAdmin(member.groupId);
-  if (!admin) return { error: 'Admins only' };
-  if (admin.member.id === memberId) return { error: 'Cannot remove yourself' };
+  if (!admin) return { error: "Admins only" };
+  if (admin.member.id === memberId) return { error: "Cannot remove yourself" };
   await db.delete(groupMembers).where(eq(groupMembers.id, memberId));
   return { success: true };
 }

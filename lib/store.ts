@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { Store } from '@tanstack/store';
-import { useSyncExternalStore } from 'react';
+import { Store } from "@tanstack/store";
+import { useSyncExternalStore } from "react";
 
 type PendingAction =
-  | { type: 'comment'; postId: string; text: string }
-  | { type: 'reaction'; postId: string; emoji: string }
+  | { type: "comment"; postId: string; text: string }
+  | { type: "reaction"; postId: string; emoji: string }
   | null;
 
 type UIState = {
@@ -22,7 +22,10 @@ const uiStore = new Store<UIState>({
   optimisticReactions: {},
 });
 
-export function setNameDialogOpen(open: boolean, pending: PendingAction = null) {
+export function setNameDialogOpen(
+  open: boolean,
+  pending: PendingAction = null
+) {
   uiStore.setState((prev) => ({
     ...prev,
     nameDialogOpen: open,
@@ -57,11 +60,12 @@ export function clearOptimisticReactions(postId: string) {
 }
 
 export function useUIState<T>(selector: (state: UIState) => T) {
-  return useSyncExternalStore(
+  const state = useSyncExternalStore(
     (callback) => uiStore.subscribe(() => callback()),
-    () => selector(uiStore.state),
-    () => selector(uiStore.state),
+    () => uiStore.state,
+    () => uiStore.state
   );
+  return selector(state);
 }
 
 export function getUIStateSnapshot() {

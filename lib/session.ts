@@ -1,28 +1,29 @@
-import { randomBytes } from 'crypto';
-import { cookies } from 'next/headers';
-import { eq } from 'drizzle-orm';
+import { randomBytes } from "crypto";
+import { cookies } from "next/headers";
+import { eq } from "drizzle-orm";
 
-import { db } from '@/db';
-import { sessions } from '@/db/schema';
+import { db } from "@/db";
+import { sessions } from "@/db/schema";
 
-const SESSION_COOKIE = 'session_id';
+const SESSION_COOKIE = "session_id";
 
-function getCookieStore() {
-  // We wrap cookies() so server actions can call these helpers easily.
-  return cookies();
-}
+export type Session = {
+  id: string;
+  groupId: string;
+  memberId: string | null;
+};
 
-function setSessionCookie(id: string) {
-  const store = getCookieStore();
+async function setSessionCookie(id: string) {
+  const store = await cookies();
   store.set(SESSION_COOKIE, id, {
     httpOnly: true,
-    sameSite: 'lax',
-    path: '/',
+    sameSite: "lax",
+    path: "/",
   });
 }
 
 export async function getSession(groupId?: string) {
-  const store = getCookieStore();
+  const store = await cookies();
   const sessionId = store.get(SESSION_COOKIE)?.value;
   if (!sessionId) return null;
 
@@ -36,16 +37,23 @@ export async function getSession(groupId?: string) {
 }
 
 export async function createSession(groupId: string, memberId?: string | null) {
-  const id = randomBytes(32).toString('hex');
+  const id = randomBytes(32).toString("hex");
   await db.insert(sessions).values({ id, groupId, memberId: memberId ?? null });
-  setSessionCookie(id);
-  return { id, groupId, memberId: memberId ?? null };
+  await setSessionCookie(id);
+  // Return the complete object matching the schema
+  return {
+    id,
+    groupId,
+    memberId: memberId ?? null,
+    createdAt: new Date(),
+    expiresAt: null,
+  };
 }
 
-export async function attachMemberToSession(sessionId: string, memberId: string) {
-  await db
-    .update(sessions)
-    .set({ memberId })
-    .where(eq(sessions.id, sessionId));
-  setSessionCookie(sessionId);
+export async function attachMemberToSession(
+  sessionId: string,
+  memberId: string
+) {
+  await db.update(sessions).set({ memberId }).where(eq(sessions.id, sessionId));
+  await setSessionCookie(sessionId);
 }

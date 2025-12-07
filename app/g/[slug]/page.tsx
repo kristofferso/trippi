@@ -1,22 +1,35 @@
-import { notFound } from 'next/navigation';
-import { count, desc, eq, inArray } from 'drizzle-orm';
+import { notFound } from "next/navigation";
+import { count, desc, eq, inArray } from "drizzle-orm";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { PasswordGate } from '@/components/password-gate';
-import { NameDialog } from '@/components/name-dialog';
-import { NewPostDialog } from '@/components/new-post-dialog';
-import { deleteMember } from '@/app/actions';
-import { db } from '@/db';
-import { comments, groupMembers, groups, posts, reactions } from '@/db/schema';
-import { createSession, getSession } from '@/lib/session';
-import { formatDate } from '@/lib/utils';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { PasswordGate } from "@/components/password-gate";
+import { NameDialog } from "@/components/name-dialog";
+import { NewPostDialog } from "@/components/new-post-dialog";
+import { deleteMember } from "@/app/actions";
+import { db } from "@/db";
+import { comments, groupMembers, groups, posts, reactions } from "@/db/schema";
+import { createSession, getSession, Session } from "@/lib/session";
+import { formatDate } from "@/lib/utils";
 
-export default async function GroupFeedPage({ params }: { params: { slug: string } }) {
-  const group = await db.query.groups.findFirst({ where: eq(groups.slug, params.slug) });
+export default async function GroupFeedPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const group = await db.query.groups.findFirst({
+    where: eq(groups.slug, slug),
+  });
   if (!group) notFound();
 
-  let session = await getSession(group.id);
+  let session = (await getSession(group.id)) as Session | null;
   if (!session && !group.passwordHash) {
     session = await createSession(group.id, null);
   }
@@ -26,7 +39,9 @@ export default async function GroupFeedPage({ params }: { params: { slug: string
   }
 
   const member = session?.memberId
-    ? await db.query.groupMembers.findFirst({ where: eq(groupMembers.id, session.memberId) })
+    ? await db.query.groupMembers.findFirst({
+        where: eq(groupMembers.id, session.memberId),
+      })
     : null;
   const isAdmin = !!member?.isAdmin;
 
@@ -38,7 +53,11 @@ export default async function GroupFeedPage({ params }: { params: { slug: string
 
   const reactionRows = postIds.length
     ? await db
-        .select({ postId: reactions.postId, emoji: reactions.emoji, value: count() })
+        .select({
+          postId: reactions.postId,
+          emoji: reactions.emoji,
+          value: count(),
+        })
         .from(reactions)
         .where(inArray(reactions.postId, postIds))
         .groupBy(reactions.postId, reactions.emoji)
@@ -62,13 +81,17 @@ export default async function GroupFeedPage({ params }: { params: { slug: string
   }
 
   const members = await db
-    .select({ id: groupMembers.id, displayName: groupMembers.displayName, isAdmin: groupMembers.isAdmin })
+    .select({
+      id: groupMembers.id,
+      displayName: groupMembers.displayName,
+      isAdmin: groupMembers.isAdmin,
+    })
     .from(groupMembers)
     .where(eq(groupMembers.groupId, group.id))
     .orderBy(desc(groupMembers.createdAt));
 
   async function removeMember(memberId: string) {
-    'use server';
+    "use server";
     await deleteMember(memberId);
   }
 
@@ -77,7 +100,9 @@ export default async function GroupFeedPage({ params }: { params: { slug: string
       <NameDialog />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm uppercase tracking-wide text-muted-foreground">Group</p>
+          <p className="text-sm uppercase tracking-wide text-muted-foreground">
+            Group
+          </p>
           <h1 className="text-3xl font-bold">{group.name}</h1>
           <p className="text-muted-foreground">/{group.slug}</p>
         </div>
@@ -89,21 +114,25 @@ export default async function GroupFeedPage({ params }: { params: { slug: string
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <CardTitle>Feed</CardTitle>
-                <CardDescription>Latest posts from admins in this group.</CardDescription>
+                <CardDescription>
+                  Latest posts from admins in this group.
+                </CardDescription>
               </div>
-              {isAdmin ? (
-                <NewPostDialog />
-              ) : null}
+              {isAdmin ? <NewPostDialog /> : null}
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {postList.length === 0 ? <p className="text-sm text-muted-foreground">No posts yet.</p> : null}
+            {postList.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No posts yet.</p>
+            ) : null}
             {postList.map((post) => (
               <Card key={post.id} className="border bg-white/80 shadow-sm">
                 <CardHeader>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      {post.title ? <CardTitle className="text-xl">{post.title}</CardTitle> : null}
+                      {post.title ? (
+                        <CardTitle className="text-xl">{post.title}</CardTitle>
+                      ) : null}
                       {post.body ? (
                         <CardDescription className="line-clamp-2 text-base text-muted-foreground">
                           {post.body}
@@ -112,23 +141,32 @@ export default async function GroupFeedPage({ params }: { params: { slug: string
                     </div>
                     <div className="text-right text-xs text-muted-foreground">
                       <p>{formatDate(post.createdAt)}</p>
-                      {post.videoUrl ? <p className="text-primary">Video attached</p> : null}
+                      {post.videoUrl ? (
+                        <p className="text-primary">Video attached</p>
+                      ) : null}
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between text-sm text-muted-foreground">
                   <div className="flex gap-3">
-                    {Object.entries(reactionCounts[post.id] ?? {}).map(([emoji, value]) => (
-                      <span key={emoji} className="flex items-center gap-1 text-base">
-                        <span>{emoji}</span>
-                        <span>{value}</span>
-                      </span>
-                    ))}
+                    {Object.entries(reactionCounts[post.id] ?? {}).map(
+                      ([emoji, value]) => (
+                        <span
+                          key={emoji}
+                          className="flex items-center gap-1 text-base"
+                        >
+                          <span>{emoji}</span>
+                          <span>{value}</span>
+                        </span>
+                      )
+                    )}
                   </div>
                   <Button asChild variant="outline" size="sm">
                     <a href={`/g/${group.slug}/post/${post.id}`}>Open</a>
                   </Button>
-                  <p className="text-xs text-muted-foreground">{commentCounts[post.id] ?? 0} comments</p>
+                  <p className="text-xs text-muted-foreground">
+                    {commentCounts[post.id] ?? 0} comments
+                  </p>
                 </CardContent>
               </Card>
             ))}
@@ -138,7 +176,9 @@ export default async function GroupFeedPage({ params }: { params: { slug: string
         <Card>
           <CardHeader>
             <CardTitle>Members</CardTitle>
-            <CardDescription>Admins can remove members if needed.</CardDescription>
+            <CardDescription>
+              Admins can remove members if needed.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {members.map((member) => (
@@ -147,8 +187,12 @@ export default async function GroupFeedPage({ params }: { params: { slug: string
                 className="flex items-center justify-between rounded-md border p-2 text-muted-foreground"
               >
                 <div>
-                  <p className="font-medium text-foreground">{member.displayName}</p>
-                  {member.isAdmin ? <p className="text-xs text-primary">Admin</p> : null}
+                  <p className="font-medium text-foreground">
+                    {member.displayName}
+                  </p>
+                  {member.isAdmin ? (
+                    <p className="text-xs text-primary">Admin</p>
+                  ) : null}
                 </div>
                 {isAdmin && member.id !== session?.memberId ? (
                   <form action={removeMember.bind(null, member.id)}>
@@ -160,7 +204,9 @@ export default async function GroupFeedPage({ params }: { params: { slug: string
               </div>
             ))}
             {members.length === 0 ? (
-              <p className="text-muted-foreground">No members registered yet.</p>
+              <p className="text-muted-foreground">
+                No members registered yet.
+              </p>
             ) : null}
           </CardContent>
         </Card>

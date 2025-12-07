@@ -10,11 +10,12 @@
   },
   "dependencies": {
     "@node-rs/argon2": "^1.7.0",
-    "@tanstack/store": "^0.6.0",
     "@tailwindcss/postcss": "4.1.7",
+    "@tanstack/store": "^0.6.0",
     "@types/node": "^22.15.18",
     "@types/react": "19.1.4",
     "@types/react-dom": "19.1.5",
+    "@vercel/blob": "^2.0.0",
     "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
