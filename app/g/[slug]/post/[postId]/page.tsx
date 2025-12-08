@@ -110,6 +110,7 @@ export default async function PostPage({
                   controls
                   className="aspect-9/16 w-full"
                   poster={post.videoUrl + "#t=0.1"}
+                  autoPlay={false}
                 />
               </div>
             )}
