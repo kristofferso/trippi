@@ -24,7 +24,12 @@ type Props = {
   emoji: string | null;
 };
 
-export function ReactionListDialog({ open, onOpenChange, postId, emoji }: Props) {
+export function ReactionListDialog({
+  open,
+  onOpenChange,
+  postId,
+  emoji,
+}: Props) {
   const [reactors, setReactors] = useState<Reactor[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -34,11 +39,11 @@ export function ReactionListDialog({ open, onOpenChange, postId, emoji }: Props)
       // Fetch ALL reactions for the post
       getReactionDetails(postId, null)
         .then((data) => {
-            const parsed = data.map(r => ({
-                ...r,
-                createdAt: new Date(r.createdAt)
-            }));
-            setReactors(parsed);
+          const parsed = data.map((r) => ({
+            ...r,
+            createdAt: new Date(r.createdAt),
+          }));
+          setReactors(parsed);
         })
         .finally(() => setLoading(false));
     }
@@ -47,16 +52,16 @@ export function ReactionListDialog({ open, onOpenChange, postId, emoji }: Props)
   // Group reactions by emoji
   const groupedReactions = useMemo(() => {
     const groups: Record<string, Reactor[]> = {};
-    reactors.forEach(r => {
-        if (!groups[r.emoji]) groups[r.emoji] = [];
-        groups[r.emoji].push(r);
+    reactors.forEach((r) => {
+      if (!groups[r.emoji]) groups[r.emoji] = [];
+      groups[r.emoji].push(r);
     });
     return groups;
   }, [reactors]);
 
   // Get unique emojis for display order
   const emojis = useMemo(() => {
-      return Object.keys(groupedReactions).sort();
+    return Object.keys(groupedReactions).sort();
   }, [groupedReactions]);
 
   return (
@@ -85,7 +90,9 @@ export function ReactionListDialog({ open, onOpenChange, postId, emoji }: Props)
                   </div>
                   <div className="pt-1 flex-1">
                     <p className="text-sm text-slate-900 leading-relaxed">
-                        {groupedReactions[emojiChar].map(r => r.displayName).join(", ")}
+                      {groupedReactions[emojiChar]
+                        .map((r) => r.displayName)
+                        .join(", ")}
                     </p>
                   </div>
                 </div>
