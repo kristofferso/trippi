@@ -5,7 +5,8 @@ import {
   pgTable,
   text,
   timestamp,
-  uuid
+  uuid,
+  json
 } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
@@ -67,8 +68,11 @@ export const posts = pgTable('posts', {
     .references(() => groupMembers.id, { onDelete: 'cascade' }),
   title: text('title'),
   body: text('body'),
+  // Deprecated columns (keeping for now to avoid data loss until migration script is run)
   videoUrl: text('video_url'),
   imageUrls: text('image_urls').array(),
+  // New column for unified media
+  media: json('media').$type<{ type: 'image' | 'video'; url: string }[]>().default([]),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
