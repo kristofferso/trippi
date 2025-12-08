@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { setNewPostDialogOpen, useUIState } from "@/lib/store";
 
-export function NewPostDialog() {
+export function NewPostDialog({ groupId }: { groupId?: string }) {
   const router = useRouter();
   const { newPostDialogOpen } = useUIState((state) => ({
     newPostDialogOpen: state.newPostDialogOpen,
@@ -70,7 +70,8 @@ export function NewPostDialog() {
           formData.get("title")?.toString() || null,
           formData.get("body")?.toString() || null,
           formData.get("videoUrl")?.toString() || null,
-          imageUrls.length > 0 ? imageUrls : null
+          imageUrls.length > 0 ? imageUrls : null,
+          groupId
         );
 
         if (result.error) {

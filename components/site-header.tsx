@@ -74,7 +74,7 @@ export function SiteHeader({
         {groupId && (
             <>
             <MembersDialog groupId={groupId} isAdmin={!!isAdmin} />
-            {isAdmin && <NewPostDialog />}
+            {isAdmin && <NewPostDialog groupId={groupId} />}
             </>
           )}
 

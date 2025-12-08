@@ -1,9 +1,9 @@
 import { randomBytes } from "crypto";
 import { cookies } from "next/headers";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
-import { memberSessions, userSessions } from "@/db/schema";
+import { groupMembers, memberSessions, userSessions } from "@/db/schema";
 
 const MEMBER_SESSION_COOKIE = "member_session_id";
 const USER_SESSION_COOKIE = "user_session_id";
@@ -98,4 +98,29 @@ export async function createUserSession(userId: string) {
 export async function logoutUser() {
   const store = await cookies();
   store.delete(USER_SESSION_COOKIE);
+}
+
+export async function getCurrentMember(groupId: string) {
+  // 1. Check for user session first
+  const userSession = await getUserSession();
+  if (userSession?.user) {
+    const member = await db.query.groupMembers.findFirst({
+      where: and(
+        eq(groupMembers.userId, userSession.userId),
+        eq(groupMembers.groupId, groupId)
+      ),
+    });
+    if (member) return member;
+  }
+
+  // 2. Fallback to guest session
+  const session = await getMemberSession(groupId);
+  if (session?.memberId) {
+    const member = await db.query.groupMembers.findFirst({
+      where: eq(groupMembers.id, session.memberId),
+    });
+    if (member) return member;
+  }
+
+  return null;
 }
