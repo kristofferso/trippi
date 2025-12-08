@@ -49,10 +49,28 @@ export function NewPostDialog() {
         // Remove the file from formData so it's not sent to the server function
         formData.delete("video");
 
+        const imageFiles = formData.getAll("images") as File[];
+        const imageUrls: string[] = [];
+        if (imageFiles.length > 0) {
+          await Promise.all(
+            imageFiles.map(async (file) => {
+              if (file.size > 0) {
+                const blob = await upload(file.name, file, {
+                  access: "public",
+                  handleUploadUrl: "/api/upload",
+                });
+                imageUrls.push(blob.url);
+              }
+            })
+          );
+        }
+        formData.delete("images");
+
         const result = await createPost(
           formData.get("title")?.toString() || null,
           formData.get("body")?.toString() || null,
-          formData.get("videoUrl")?.toString() || null
+          formData.get("videoUrl")?.toString() || null,
+          imageUrls.length > 0 ? imageUrls : null
         );
 
         if (result.error) {
@@ -101,6 +119,16 @@ export function NewPostDialog() {
           <div className="space-y-1">
             <Label htmlFor="video">Optional video</Label>
             <Input name="video" id="video" type="file" accept="video/*" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="images">Photos</Label>
+            <Input
+              name="images"
+              id="images"
+              type="file"
+              accept="image/*"
+              multiple
+            />
           </div>
           {message ? (
             <p className="text-sm text-destructive">{message}</p>

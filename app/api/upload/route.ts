@@ -28,7 +28,15 @@ export async function POST(request: Request): Promise<NextResponse> {
         }
 
         return {
-          allowedContentTypes: ["video/mp4", "video/quicktime", "video/webm"],
+          allowedContentTypes: [
+            "video/mp4",
+            "video/quicktime",
+            "video/webm",
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/gif",
+          ],
           addRandomSuffix: true,
           tokenPayload: JSON.stringify({
             memberId: member.id,

@@ -1,6 +1,13 @@
 import { notFound } from "next/navigation";
 import { desc, count, eq } from "drizzle-orm";
 
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import { PasswordGate } from "@/components/password-gate";
 import { NameDialog } from "@/components/name-dialog";
 import { ReactionBar } from "@/components/reaction-bar";
@@ -101,6 +108,26 @@ export default async function PostPage({
               <div className="prose prose-slate max-w-none text-lg text-slate-700">
                 <p>{post.body}</p>
               </div>
+            )}
+
+            {post.imageUrls && post.imageUrls.length > 0 && (
+              <Carousel className="w-full">
+                <CarouselContent>
+                  {post.imageUrls.map((url, index) => (
+                    <CarouselItem key={index}>
+                      <div className="overflow-hidden rounded-xl bg-slate-100 shadow-2xl ring-1 ring-slate-900/10">
+                        <img
+                          src={url}
+                          alt={`Photo ${index + 1}`}
+                          className="aspect-[4/3] w-full object-cover"
+                        />
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="left-4" />
+                <CarouselNext className="right-4" />
+              </Carousel>
             )}
 
             {post.videoUrl && (

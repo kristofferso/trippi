@@ -15,6 +15,13 @@
       "when": 1765114607936,
       "tag": "0001_yellow_alex_power",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765154359752,
+      "tag": "0002_groovy_warbird",
+      "breakpoints": true
     }
   ]
 }

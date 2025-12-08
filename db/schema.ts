@@ -50,6 +50,7 @@ export const posts = pgTable('posts', {
   title: text('title'),
   body: text('body'),
   videoUrl: text('video_url'),
+  imageUrls: text('image_urls').array(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

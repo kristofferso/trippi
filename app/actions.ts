@@ -160,7 +160,8 @@ export async function setDisplayName(
 export async function createPost(
   title: string | null,
   body: string | null,
-  videoUrl: string | null
+  videoUrl: string | null,
+  imageUrls: string[] | null
 ) {
   const session = await getSession();
   if (!session?.memberId) {
@@ -178,6 +179,7 @@ export async function createPost(
     title,
     body,
     videoUrl,
+    imageUrls,
   });
 
   return { success: true };

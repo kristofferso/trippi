@@ -1,6 +1,12 @@
 import { notFound } from "next/navigation";
 import { count, desc, eq, inArray } from "drizzle-orm";
-import { Video, MessageCircle, MoreVertical, Trash2 } from "lucide-react";
+import {
+  Video,
+  MessageCircle,
+  MoreVertical,
+  Trash2,
+  Image as ImageIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -122,6 +128,19 @@ export default async function GroupFeedPage({
                     </div>
                   </div>
                 </div>
+              ) : post.imageUrls && post.imageUrls.length > 0 ? (
+                <div className="relative aspect-video overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-900/5 transition-transform group-hover:scale-[1.01]">
+                  <img
+                    src={post.imageUrls[0]}
+                    alt={post.title || "Post image"}
+                    className="h-full w-full object-cover"
+                  />
+                  {post.imageUrls.length > 1 && (
+                    <div className="absolute bottom-2 right-2 rounded-md bg-black/50 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                      +{post.imageUrls.length - 1}
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="relative aspect-[2/1] overflow-hidden rounded-xl bg-slate-50 p-6 ring-1 ring-slate-900/5 transition-transform group-hover:scale-[1.01]">
                   <div className="flex h-full flex-col justify-center">
@@ -140,9 +159,10 @@ export default async function GroupFeedPage({
               {/* Metadata & Stats */}
               <div className="flex items-start justify-between gap-4 px-1">
                 <div className="space-y-1">
-                  {post.videoUrl && (
+                  {(post.videoUrl ||
+                    (post.imageUrls && post.imageUrls.length > 0)) && (
                     <h2 className="font-semibold text-slate-900 group-hover:text-blue-600">
-                      {post.title || "Untitled Video"}
+                      {post.title || "Untitled Post"}
                     </h2>
                   )}
                   <div className="flex items-center gap-3 text-sm text-slate-500">
