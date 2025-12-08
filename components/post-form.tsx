@@ -64,11 +64,7 @@ export function PostForm({ groupId, groupSlug, initialData }: PostFormProps) {
 
   const uploadUrl = `/api/upload?groupId=${groupId}`;
 
-  const uploadMedia = async (
-    id: string,
-    file: File,
-    thumbnailFile?: File
-  ) => {
+  const uploadMedia = async (id: string, file: File, thumbnailFile?: File) => {
     try {
       let thumbnailUrl: string | undefined;
 
@@ -115,16 +111,40 @@ export function PostForm({ groupId, groupSlug, initialData }: PostFormProps) {
     }
   };
 
-  const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) {
       const newItems: MediaItem[] = [];
+      const filesToProcess: {
+        id: string;
+        file: File;
+        type: "image" | "video";
+      }[] = [];
+
       for (let i = 0; i < e.target.files.length; i++) {
         const file = e.target.files[i];
         const type = file.type.startsWith("video/") ? "video" : "image";
         const id = `new-${Date.now()}-${i}`;
+        const previewUrl = URL.createObjectURL(file);
 
+        newItems.push({
+          id,
+          type,
+          file,
+          previewUrl,
+          isUploading: true,
+        });
+
+        filesToProcess.push({ id, file, type });
+      }
+
+      setMediaItems((prev) => [...prev, ...newItems]);
+
+      // Reset input immediately
+      if (fileInputRef.current) fileInputRef.current.value = "";
+
+      // Process files asynchronously
+      filesToProcess.forEach(async ({ id, file, type }) => {
         let thumbnailFile: File | undefined;
-        let previewUrl = URL.createObjectURL(file);
 
         if (type === "video") {
           try {
@@ -132,32 +152,14 @@ export function PostForm({ groupId, groupSlug, initialData }: PostFormProps) {
             thumbnailFile = new File([thumbBlob], "thumbnail.jpg", {
               type: "image/jpeg",
             });
-            // Use thumbnail for preview if available, otherwise video file
-            // Actually for <video> tag we can use the video file blob
           } catch (err) {
             console.error("Failed to generate thumbnail", err);
+            // Continue without thumbnail
           }
         }
 
-        newItems.push({
-          id,
-          type,
-          file,
-          previewUrl,
-          thumbnailFile,
-          isUploading: true,
-        });
-      }
-      setMediaItems((prev) => [...prev, ...newItems]);
-
-      for (const item of newItems) {
-        if (item.file) {
-          uploadMedia(item.id, item.file, item.thumbnailFile);
-        }
-      }
-
-      // Reset input
-      if (fileInputRef.current) fileInputRef.current.value = "";
+        uploadMedia(id, file, thumbnailFile);
+      });
     }
   };
 
@@ -382,7 +384,9 @@ export function PostForm({ groupId, groupSlug, initialData }: PostFormProps) {
         <div
           className={cn(
             "fixed bottom-6 right-6 rounded-md px-4 py-3 shadow-lg",
-            toast.type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
+            toast.type === "success"
+              ? "bg-green-600 text-white"
+              : "bg-red-600 text-white"
           )}
           role="status"
         >
