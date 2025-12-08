@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition, useOptimistic } from "react";
 import { MessageCircle, Smile, Plus } from "lucide-react";
+import { EmojiRain } from "@/components/emoji-rain";
 import {
   Drawer,
   DrawerContent,
@@ -74,6 +75,7 @@ export function PostInteractionLayer({
 
   const [pending, startTransition] = useTransition();
   const [reactionDrawerOpen, setReactionDrawerOpen] = useState(false);
+  const [activeRainEmoji, setActiveRainEmoji] = useState<string | null>(null);
 
   const activeReactions = useMemo(() => {
     return Object.entries(optimisticCounts)
@@ -88,6 +90,11 @@ export function PostInteractionLayer({
 
   const handleReact = (emoji: string) => {
     setReactionDrawerOpen(false);
+
+    // Trigger rain
+    setActiveRainEmoji(null);
+    setTimeout(() => setActiveRainEmoji(emoji), 10);
+
     startTransition(async () => {
       addOptimisticReaction(emoji);
       const result = await addReaction(postId, emoji);
@@ -103,6 +110,8 @@ export function PostInteractionLayer({
 
   return (
     <>
+      <EmojiRain emoji={activeRainEmoji} />
+
       {/* Bottom Left Info & Reactions */}
       <div className="absolute bottom-0 left-0 right-0 z-10 p-4 pb-8 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
         <div className="space-y-3 pointer-events-auto">
