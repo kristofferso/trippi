@@ -36,7 +36,9 @@ export default async function DashboardPage() {
         <div className="rounded-lg border p-6 space-y-4 bg-white">
           <div>
             <h2 className="text-lg font-semibold">Profile</h2>
-            <p className="text-sm text-slate-500">Update your personal information</p>
+            <p className="text-sm text-slate-500">
+              Update your personal information
+            </p>
           </div>
           <UpdateUsernameForm initialUsername={session.user.username || ""} />
         </div>
@@ -46,7 +48,7 @@ export default async function DashboardPage() {
             <h2 className="text-2xl font-bold">My Trips</h2>
             <CreateGroupDialog />
           </div>
-          
+
           {myGroups.length === 0 ? (
             <div className="text-center py-12 border rounded-lg bg-slate-50">
               <h3 className="text-lg font-medium">No trips yet</h3>
@@ -54,15 +56,21 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-               {myGroups.map(g => (
-                  <Link key={g.id} href={`/g/${g.slug}`} className="block group">
-                    <div className="border rounded-lg p-4 hover:border-slate-400 transition-colors h-full bg-white shadow-sm">
-                      <h3 className="font-semibold text-lg group-hover:underline">{g.name}</h3>
-                      <p className="text-sm text-slate-500">/g/{g.slug}</p>
-                      {g.role && <span className="inline-block px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded-full mt-2">Admin</span>}
-                    </div>
-                  </Link>
-               ))}
+              {myGroups.map((g) => (
+                <Link key={g.id} href={`/g/${g.slug}`} className="block group">
+                  <div className="border rounded-lg p-4 hover:border-slate-400 transition-colors h-full bg-white ">
+                    <h3 className="font-semibold text-lg group-hover:underline">
+                      {g.name}
+                    </h3>
+                    <p className="text-sm text-slate-500">/g/{g.slug}</p>
+                    {g.role && (
+                      <span className="inline-block px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded-full mt-2">
+                        Admin
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              ))}
             </div>
           )}
         </div>

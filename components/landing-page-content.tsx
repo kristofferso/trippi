@@ -54,7 +54,7 @@ export function LandingPageContent({
             <div className="relative flex items-center">
               <Input
                 placeholder="Enter a group code..."
-                className="h-12 rounded-full border-slate-200 bg-white px-6 pr-12 shadow-sm transition-all focus-visible:border-slate-400 focus-visible:ring-0 group-hover:shadow-md"
+                className="h-12 rounded-full border-slate-200 bg-white px-6 pr-12 transition-all focus-visible:border-slate-400 focus-visible:ring-0"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
                 autoFocus

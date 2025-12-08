@@ -17,6 +17,7 @@ import { db } from "@/db";
 import { comments, groupMembers, groups, posts, reactions } from "@/db/schema";
 import { getCurrentMember, getMemberSession } from "@/lib/session";
 import { formatDate } from "@/lib/utils";
+import Image from "next/image";
 
 export default async function PostPage({
   params,
@@ -107,13 +108,15 @@ export default async function PostPage({
 
             {post.imageUrls && post.imageUrls.length > 0 && (
               <Carousel className="w-full">
-                <CarouselContent className="rounded-2xl">
+                <CarouselContent>
                   {post.imageUrls.map((url, index) => (
                     <CarouselItem key={index}>
-                      <img
+                      <Image
                         src={url}
+                        width={500}
+                        height={500}
                         alt={`Photo ${index + 1}`}
-                        className="aspect-square w-full object-cover"
+                        className="aspect-square w-full object-cover rounded-2xl"
                       />
                     </CarouselItem>
                   ))}
@@ -124,7 +127,7 @@ export default async function PostPage({
             )}
 
             {post.videoUrl && (
-              <div className="overflow-hidden rounded-xl bg-slate-900 shadow-2xl ring-1 ring-slate-900/10">
+              <div className="overflow-hidden rounded-xl bg-slate-900 ring-1 ring-slate-900/10">
                 <video
                   src={post.videoUrl}
                   controls

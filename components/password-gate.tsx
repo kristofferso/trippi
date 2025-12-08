@@ -45,7 +45,7 @@ export function PasswordGate({ slug, name }: { slug: string; name: string }) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-4 rounded-xl border bg-white p-6 shadow-sm">
+          <div className="space-y-4 rounded-xl border bg-white p-6">
             <div className="space-y-2">
               <label
                 htmlFor="password"

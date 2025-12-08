@@ -111,7 +111,7 @@ export default async function GroupFeedPage({
                     playsInline
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/10 transition-colors group-hover:bg-black/0">
-                    <div className="rounded-full bg-white/90 p-3 shadow-lg backdrop-blur-sm transition-transform group-hover:scale-110">
+                    <div className="rounded-full bg-white/90 p-3 backdrop-blur-sm transition-transform group-hover:scale-110">
                       <Video
                         className="h-6 w-6 text-slate-900"
                         fill="currentColor"
