@@ -206,7 +206,8 @@ export async function createPost(
   body: string | null,
   videoUrl: string | null,
   imageUrls: string[] | null,
-  groupId?: string // Added groupId parameter
+  groupId?: string,
+  thumbnailUrl?: string | null
 ) {
   // Fallback for backward compatibility if groupId is missing (though we should pass it)
   // If missing, we can't really know which group unless we rely on the cookie, which `getCurrentMember` handles partially via `getMemberSession` fallback
@@ -233,6 +234,14 @@ export async function createPost(
     return { error: "Admins only" };
   }
 
+  const media: { type: 'image' | 'video'; url: string; thumbnailUrl?: string }[] = [];
+  if (videoUrl) {
+    media.push({ type: 'video', url: videoUrl, thumbnailUrl: thumbnailUrl || undefined });
+  }
+  if (imageUrls) {
+    imageUrls.forEach((url) => media.push({ type: 'image', url }));
+  }
+
   await db.insert(posts).values({
     groupId: groupId,
     authorId: member.id,
@@ -240,6 +249,7 @@ export async function createPost(
     body,
     videoUrl,
     imageUrls,
+    media,
   });
 
   return { success: true };
@@ -291,6 +301,16 @@ export async function addReaction(postId: string, emoji: string) {
     memberId: member.id,
     emoji,
   });
+
+  const group = await db.query.groups.findFirst({
+    where: eq(groups.id, post.groupId),
+  });
+  
+  if (group) {
+    revalidatePath(`/g/${group.slug}/post/${postId}`);
+    revalidatePath(`/g/${group.slug}`);
+  }
+
   return { success: true };
 }
 

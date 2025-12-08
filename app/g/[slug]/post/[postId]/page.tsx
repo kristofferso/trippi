@@ -101,7 +101,7 @@ export default async function PostPage({
   return (
     <div className="relative h-[100dvh] w-full bg-black overflow-hidden">
       {/* Top Navigation */}
-      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent pt-12 md:pt-4">
+      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent pt-6">
         <Link
           href={`/g/${slug}`}
           className="flex items-center gap-2 text-white/90 hover:text-white transition-colors"

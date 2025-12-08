@@ -72,7 +72,7 @@ export const posts = pgTable('posts', {
   videoUrl: text('video_url'),
   imageUrls: text('image_urls').array(),
   // New column for unified media
-  media: json('media').$type<{ type: 'image' | 'video'; url: string }[]>().default([]),
+  media: json('media').$type<{ type: 'image' | 'video'; url: string; thumbnailUrl?: string; width?: number; height?: number }[]>().default([]),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -17,8 +17,30 @@ import { cn, formatDate } from "@/lib/utils";
 import { setNameDialogOpen } from "@/lib/store";
 
 const ALL_EMOJIS = [
-  "👍", "👎", "❤️", "😂", "😮", "😢", "😡", "👏", "🎉", "🔥", "💯", "👀",
-  "🤝", "🙏", "💪", "🧠", "🚀", "🤔", "🤷", "🤡", "💩", "👻", "💀", "👽",
+  "👍",
+  "👎",
+  "❤️",
+  "😂",
+  "😮",
+  "😢",
+  "😡",
+  "👏",
+  "🎉",
+  "🔥",
+  "💯",
+  "👀",
+  "🤝",
+  "🙏",
+  "💪",
+  "🧠",
+  "🚀",
+  "🤔",
+  "🤷",
+  "🤡",
+  "💩",
+  "👻",
+  "💀",
+  "👽",
 ];
 
 type Props = {
@@ -82,7 +104,7 @@ export function PostInteractionLayer({
   return (
     <>
       {/* Bottom Left Info & Reactions */}
-      <div className="absolute bottom-0 left-0 right-16 z-10 p-4 pb-8 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
+      <div className="absolute bottom-0 left-0 right-0 z-10 p-4 pb-8 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
         <div className="space-y-3 pointer-events-auto">
           {/* Text Info */}
           {isMediaPost && (
@@ -151,7 +173,9 @@ export function PostInteractionLayer({
           <DrawerContent className="fixed bottom-0 left-0 right-0 max-h-[50vh] outline-none">
             <div className="mx-auto w-full max-w-sm">
               <DrawerHeader>
-                <DrawerTitle className="text-center">Choose a Reaction</DrawerTitle>
+                <DrawerTitle className="text-center">
+                  Choose a Reaction
+                </DrawerTitle>
               </DrawerHeader>
               <div className="grid grid-cols-6 gap-2 p-4 pb-8">
                 {ALL_EMOJIS.map((emoji) => (
@@ -204,4 +228,3 @@ export function PostInteractionLayer({
     </>
   );
 }
-

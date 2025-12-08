@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { createPost } from "@/app/actions";
 import { Button } from "@/components/ui/button";
+import { generateVideoThumbnail } from "@/lib/video";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +44,20 @@ export function NewPostDialog({ groupId }: { groupId?: string }) {
 
         const file = formData.get("video") as File;
         if (file && file.size > 0) {
+          try {
+            const thumbBlob = await generateVideoThumbnail(file);
+            const thumbFile = new File([thumbBlob], "thumbnail.jpg", {
+              type: "image/jpeg",
+            });
+            const thumbUpload = await upload(thumbFile.name, thumbFile, {
+              access: "public",
+              handleUploadUrl: uploadUrl,
+            });
+            formData.set("thumbnailUrl", thumbUpload.url);
+          } catch (e) {
+            console.error("Failed to generate thumbnail", e);
+          }
+
           const blob = await upload(file.name, file, {
             access: "public",
             handleUploadUrl: uploadUrl,
@@ -75,7 +90,8 @@ export function NewPostDialog({ groupId }: { groupId?: string }) {
           formData.get("body")?.toString() || null,
           formData.get("videoUrl")?.toString() || null,
           imageUrls.length > 0 ? imageUrls : null,
-          groupId
+          groupId,
+          formData.get("thumbnailUrl")?.toString() || null
         );
 
         if (result.error) {
