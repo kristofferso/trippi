@@ -37,11 +37,15 @@ export function NewPostDialog({ groupId }: { groupId?: string }) {
 
     startTransition(async () => {
       try {
+        const uploadUrl = groupId
+          ? `/api/upload?groupId=${groupId}`
+          : "/api/upload";
+
         const file = formData.get("video") as File;
         if (file && file.size > 0) {
           const blob = await upload(file.name, file, {
             access: "public",
-            handleUploadUrl: "/api/upload",
+            handleUploadUrl: uploadUrl,
           });
           formData.set("videoUrl", blob.url);
         }
@@ -57,7 +61,7 @@ export function NewPostDialog({ groupId }: { groupId?: string }) {
               if (file.size > 0) {
                 const blob = await upload(file.name, file, {
                   access: "public",
-                  handleUploadUrl: "/api/upload",
+                  handleUploadUrl: uploadUrl,
                 });
                 imageUrls.push(blob.url);
               }
