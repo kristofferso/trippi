@@ -28,6 +28,7 @@ type MediaItem = {
   thumbnailFile?: File;
   previewUrl: string;
   isUploading?: boolean;
+  progress?: number;
   error?: string;
 };
 
@@ -47,6 +48,7 @@ export function PostForm({ groupId, groupSlug, initialData }: PostFormProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllers = useRef<Record<string, AbortController>>({});
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
@@ -64,22 +66,58 @@ export function PostForm({ groupId, groupSlug, initialData }: PostFormProps) {
 
   const uploadUrl = `/api/upload?groupId=${groupId}`;
 
-  const uploadMedia = async (id: string, file: File, thumbnailFile?: File) => {
+  const uploadMedia = async (id: string, file: File) => {
+    const controller = new AbortController();
+    abortControllers.current[id] = controller;
+
     try {
-      let thumbnailUrl: string | undefined;
+      const type = file.type.startsWith("video/") ? "video" : "image";
 
-      if (thumbnailFile) {
-        const thumbUpload = await upload(thumbnailFile.name, thumbnailFile, {
-          access: "public",
-          handleUploadUrl: uploadUrl,
-        });
-        thumbnailUrl = thumbUpload.url;
-      }
-
-      const fileUpload = await upload(file.name, file, {
+      const mainUploadPromise = upload(file.name, file, {
         access: "public",
         handleUploadUrl: uploadUrl,
+        multipart: true,
+        abortSignal: controller.signal,
+        onUploadProgress: (progressEvent) => {
+          setMediaItems((prev) =>
+            prev.map((item) =>
+              item.id === id
+                ? { ...item, progress: progressEvent.percentage }
+                : item
+            )
+          );
+        },
       });
+
+      let thumbnailUploadPromise: Promise<string | undefined> =
+        Promise.resolve(undefined);
+
+      if (type === "video") {
+        thumbnailUploadPromise = generateVideoThumbnail(file)
+          .then(async (blob) => {
+            if (controller.signal.aborted) throw new Error("Aborted");
+            const thumbFile = new File([blob], "thumbnail.jpg", {
+              type: "image/jpeg",
+            });
+            const res = await upload(thumbFile.name, thumbFile, {
+              access: "public",
+              handleUploadUrl: uploadUrl,
+              abortSignal: controller.signal,
+            });
+            return res.url;
+          })
+          .catch((err) => {
+            if (err.message === "Aborted" || err.name === "AbortError")
+              throw err;
+            console.error("Failed to generate/upload thumbnail", err);
+            return undefined;
+          });
+      }
+
+      const [fileUpload, thumbnailUrl] = await Promise.all([
+        mainUploadPromise,
+        thumbnailUploadPromise,
+      ]);
 
       setMediaItems((prev) =>
         prev.map((item) =>
@@ -90,11 +128,23 @@ export function PostForm({ groupId, groupSlug, initialData }: PostFormProps) {
                 thumbnailUrl,
                 isUploading: false,
                 error: undefined,
+                progress: 100,
               }
             : item
         )
       );
+
+      setToast({ message: "Upload complete", type: "success" });
+      setTimeout(() => setToast(null), 3000);
     } catch (error) {
+      if (
+        (error as Error).name === "AbortError" ||
+        (error as Error).message === "Aborted"
+      ) {
+        console.log("Upload aborted");
+        return;
+      }
+
       console.error("Failed to upload media", error);
       setMediaItems((prev) =>
         prev.map((item) =>
@@ -107,7 +157,10 @@ export function PostForm({ groupId, groupSlug, initialData }: PostFormProps) {
             : item
         )
       );
-      setMessage("Failed to upload media. Please try again.");
+      setToast({ message: "Upload failed", type: "error" });
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      delete abortControllers.current[id];
     }
   };
 
@@ -143,27 +196,18 @@ export function PostForm({ groupId, groupSlug, initialData }: PostFormProps) {
       if (fileInputRef.current) fileInputRef.current.value = "";
 
       // Process files asynchronously
-      filesToProcess.forEach(async ({ id, file, type }) => {
-        let thumbnailFile: File | undefined;
-
-        if (type === "video") {
-          try {
-            const thumbBlob = await generateVideoThumbnail(file);
-            thumbnailFile = new File([thumbBlob], "thumbnail.jpg", {
-              type: "image/jpeg",
-            });
-          } catch (err) {
-            console.error("Failed to generate thumbnail", err);
-            // Continue without thumbnail
-          }
-        }
-
-        uploadMedia(id, file, thumbnailFile);
+      filesToProcess.forEach(({ id, file }) => {
+        uploadMedia(id, file);
       });
     }
   };
 
   const removeMedia = (id: string) => {
+    if (abortControllers.current[id]) {
+      abortControllers.current[id].abort();
+      delete abortControllers.current[id];
+    }
+
     setMediaItems((prev) => {
       const item = prev.find((i) => i.id === id);
       if (item?.previewUrl && item.file) {
@@ -321,8 +365,20 @@ export function PostForm({ groupId, groupSlug, initialData }: PostFormProps) {
                 </button>
 
                 {item.isUploading ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40 text-white">
                     <Loader2 className="h-5 w-5 animate-spin" />
+                    {item.progress !== undefined && (
+                      <span className="text-xs font-medium">
+                        {Math.round(item.progress)}%
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeMedia(item.id)}
+                      className="rounded-full bg-red-500/80 p-1 hover:bg-red-500"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
                 ) : null}
 

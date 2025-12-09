@@ -13,7 +13,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const jsonResponse = await handleUpload({
       body,
       request,
-      onBeforeGenerateToken: async () => {
+      onBeforeGenerateToken: async (pathname, clientPayload, multipart) => {
         // Retrieve groupId from request URL or body?
         // handleUpload doesn't easily expose custom params in the initial request to POST
         // But the client-side `upload` function can pass query params to the `handleUploadUrl`
