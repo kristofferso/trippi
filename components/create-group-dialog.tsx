@@ -28,11 +28,11 @@ export function CreateGroupDialog({ trigger }: { trigger?: React.ReactNode }) {
     setError(null);
     startTransition(async () => {
       const res = await createGroup(slug, name, password || undefined);
-      if (res?.error) {
+      if ("error" in res) {
         setError(res.error);
         return;
       }
-      if (res?.success) {
+      if (res.success) {
         router.push(`/g/${slug}`);
       }
     });

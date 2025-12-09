@@ -9,7 +9,9 @@ import {
   Video as VideoIcon,
   X,
   Upload,
+  Info,
 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 import { createPost, updatePost } from "@/app/actions";
 import { Button } from "@/components/ui/button";
@@ -65,6 +67,11 @@ export function PostForm({ groupId, groupSlug, initialData }: PostFormProps) {
   );
 
   const uploadUrl = `/api/upload?groupId=${groupId}`;
+
+  const hasLargeVideo = mediaItems.some(
+    (item) =>
+      item.type === "video" && item.file && item.file.size > 100 * 1024 * 1024
+  );
 
   const uploadMedia = async (id: string, file: File) => {
     const controller = new AbortController();
@@ -359,7 +366,7 @@ export function PostForm({ groupId, groupSlug, initialData }: PostFormProps) {
                 <button
                   type="button"
                   onClick={() => removeMedia(item.id)}
-                  className="absolute right-2 top-2 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  className="absolute right-2 top-2 rounded-full bg-red-500 p-1 text-white opacity-100 transition-opacity hover:bg-red-600"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -408,6 +415,17 @@ export function PostForm({ groupId, groupSlug, initialData }: PostFormProps) {
             accept="image/*,video/*"
             onChange={handleFiles}
           />
+
+          {hasLargeVideo && (
+            <Alert className="bg-blue-50 text-blue-900 border-blue-200">
+              <Info className="h-4 w-4 text-blue-600" />
+              <AlertTitle>Large video detected</AlertTitle>
+              <AlertDescription className="text-blue-800/90 text-xs mt-1">
+                Uploads may be slow. On iPhone, you can use a "Compress Video"
+                shortcut or app before uploading to make this much faster.
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
 
         {message ? <p className="text-sm text-destructive">{message}</p> : null}
