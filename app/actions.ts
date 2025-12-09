@@ -10,6 +10,7 @@ import {
   comments,
   groupMembers,
   groups,
+  memberSessions,
   posts,
   reactions,
   users,
@@ -452,6 +453,8 @@ export async function deleteMember(memberId: string) {
   if (!admin) return { error: "Admins only" };
 
   if (admin.member.id === memberId) return { error: "Cannot remove yourself" };
+
+  await db.delete(memberSessions).where(eq(memberSessions.memberId, memberId));
   await db.delete(groupMembers).where(eq(groupMembers.id, memberId));
   return { success: true };
 }
@@ -612,5 +615,56 @@ export async function updatePasswordAction(formData: FormData) {
     .set({ passwordHash })
     .where(eq(users.id, session.userId));
 
+  return { success: true };
+}
+
+export async function updateGroup(
+  groupId: string,
+  name: string,
+  slug: string,
+  enablePassword: boolean,
+  password?: string
+) {
+  const admin = await ensureAdmin(groupId);
+  if (!admin) return { error: "Admins only" };
+
+  const existing = await db.query.groups.findFirst({
+    where: eq(groups.slug, slug),
+  });
+
+  if (existing && existing.id !== groupId) {
+    return { error: "Slug already taken" };
+  }
+
+  const updateData: any = { name, slug };
+
+  if (!enablePassword) {
+    updateData.passwordHash = null;
+  } else if (password) {
+    updateData.passwordHash = await hashPassword(password);
+  } else {
+    const currentGroup = await db.query.groups.findFirst({
+      where: eq(groups.id, groupId),
+    });
+
+    if (currentGroup && !currentGroup.passwordHash) {
+      return { error: "Password required to enable protection" };
+    }
+  }
+
+  await db.update(groups).set(updateData).where(eq(groups.id, groupId));
+
+  revalidatePath(`/g/${slug}`);
+  return { success: true };
+}
+
+export async function revokeMemberSession(memberId: string) {
+  const member = await getMember(memberId);
+  if (!member) return { error: "Member missing" };
+
+  const admin = await ensureAdmin(member.groupId);
+  if (!admin) return { error: "Admins only" };
+
+  await db.delete(memberSessions).where(eq(memberSessions.memberId, memberId));
   return { success: true };
 }
