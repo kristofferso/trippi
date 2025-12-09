@@ -212,7 +212,7 @@ export function PostInteractionLayer({
               </span>
             </div>
           </DrawerTrigger>
-          <DrawerContent className="fixed bottom-0 left-0 right-0 max-h-[50vh] outline-none">
+          <DrawerContent className="fixed bottom-0 left-0 right-0 min-h-[70dvh] outline-none">
             <div className="mx-auto w-full max-w-sm">
               <DrawerHeader>
                 <DrawerTitle className="text-center">
