@@ -6,9 +6,9 @@ import { Analytics } from "@vercel/analytics/next";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Trippi",
+  title: "Trippy",
   description:
-    "Trippi is a platform for sharing your travel experiences with your friends and family.",
+    "Trippy is a platform for sharing your travel experiences with your friends and family.",
 };
 
 export default function RootLayout({

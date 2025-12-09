@@ -55,7 +55,7 @@ export function SiteHeader({
               className="flex items-center gap-2 transition-opacity hover:opacity-80"
             >
               <Image src={trippi} alt="" className="size-8" />
-              {!groupName && <p className="text-lg font-bold">Trippi</p>}
+              {!groupName && <p className="text-lg font-bold">Trippy</p>}
             </Link>
           )}
 
@@ -70,14 +70,14 @@ export function SiteHeader({
         </div>
 
         <div className="flex items-center gap-2">
-        {groupId && (
+          {groupId && (
             <>
-            <MembersDialog groupId={groupId} isAdmin={!!isAdmin} />
-            {isAdmin && groupSlug && (
-              <Button asChild>
-                <Link href={`/g/${groupSlug}/post/new`}>New post</Link>
-              </Button>
-            )}
+              <MembersDialog groupId={groupId} isAdmin={!!isAdmin} />
+              {isAdmin && groupSlug && (
+                <Button asChild>
+                  <Link href={`/g/${groupSlug}/post/new`}>New post</Link>
+                </Button>
+              )}
             </>
           )}
 
@@ -103,19 +103,21 @@ export function SiteHeader({
                   </Link>
                 </DropdownMenuItem>
                 <form action={logoutAction}>
-                   <button type="submit" className="w-full">
+                  <button type="submit" className="w-full">
                     <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600">
                       <LogOut className="mr-2 h-4 w-4" />
                       Sign out
                     </DropdownMenuItem>
-                   </button>
+                  </button>
                 </form>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : !groupId && (
-             <Button asChild variant="ghost" size="sm">
-               <Link href="/login">Login</Link>
-             </Button>
+          ) : (
+            !groupId && (
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/login">Login</Link>
+              </Button>
+            )
           )}
         </div>
       </div>

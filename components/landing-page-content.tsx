@@ -33,7 +33,7 @@ export function LandingPageContent({
           <div className="absolute -inset-1 animate-pulse rounded-full " />
           <Image
             src={hero}
-            alt="Trippi Logo"
+            alt="Trippy Logo"
             className="relative size-60 -scale-x-100"
             priority
           />
@@ -41,7 +41,7 @@ export function LandingPageContent({
 
         <div className="space-y-4">
           <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-            Trippi
+            Trippy
           </h1>
           <p className="text-lg text-slate-600 sm:text-xl">
             The simplest way to log your travels and share it with your inner

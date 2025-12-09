@@ -27,11 +27,7 @@ export function CreateGroupDialog({ trigger }: { trigger?: React.ReactNode }) {
   const handleCreate = async () => {
     setError(null);
     startTransition(async () => {
-      const res = await createGroup(
-        slug,
-        name,
-        password || undefined
-      );
+      const res = await createGroup(slug, name, password || undefined);
       if (res?.error) {
         setError(res.error);
         return;
@@ -46,10 +42,7 @@ export function CreateGroupDialog({ trigger }: { trigger?: React.ReactNode }) {
     <Dialog>
       <DialogTrigger asChild>
         {trigger || (
-          <Button
-            variant="default" 
-            className="rounded-full"
-          >
+          <Button variant="default" className="rounded-full">
             <Plus className="mr-2 h-4 w-4" />
             New Trip
           </Button>
@@ -77,7 +70,7 @@ export function CreateGroupDialog({ trigger }: { trigger?: React.ReactNode }) {
             <div className="flex items-center gap-2">
               <span className="text-sm text-slate-400">
                 {process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL ||
-                  "trippi.dev"}
+                  "trippy.lat"}
                 /
               </span>
               <Input
