@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   title: "Trippy",
   description:
     "Trippy is a platform for sharing your travel experiences with your friends and family.",
+  icons: {
+    icon: "/trippi.png",
+    apple: "/trippi.png",
+  },
 };
 
 export default function RootLayout({
