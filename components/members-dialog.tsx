@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Trash2, Users } from "lucide-react";
+import { Trash2, Users, Shield, ShieldCheck, Check, Copy } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,14 +12,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { deleteMember, getGroupMembers } from "@/app/actions";
+import { deleteMember, getGroupMembers, toggleAdmin } from "@/app/actions";
 import { type GroupMember } from "@/db/schema";
 
 export function MembersDialog({ groupId, isAdmin }: { groupId: string, isAdmin: boolean }) {
   const [open, setOpen] = useState(false);
-  const [members, setMembers] = useState<Pick<GroupMember, "id" | "displayName" | "isAdmin">[]>([]);
+  const [members, setMembers] = useState<(Pick<GroupMember, "id" | "displayName" | "isAdmin"> & { isCurrentUser?: boolean; isUser?: boolean })[]>([]);
   const [loading, setLoading] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -40,6 +41,25 @@ export function MembersDialog({ groupId, isAdmin }: { groupId: string, isAdmin: 
     });
   };
 
+  const handleToggleAdmin = (memberId: string) => {
+    startTransition(async () => {
+      const result = await toggleAdmin(memberId);
+      if (result?.success) {
+        setMembers((prev) =>
+          prev.map((m) =>
+            m.id === memberId ? { ...m, isAdmin: result.isAdmin! } : m
+          )
+        );
+      }
+    });
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -56,6 +76,17 @@ export function MembersDialog({ groupId, isAdmin }: { groupId: string, isAdmin: 
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4 space-y-4">
+          <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 p-3">
+             <div className="space-y-0.5">
+                <div className="text-sm font-medium text-slate-900">Invite people</div>
+                <div className="text-xs text-slate-500">Share this link to let others join.</div>
+             </div>
+             <Button size="sm" variant="outline" onClick={copyLink} className="h-8 gap-1.5">
+                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied ? "Copied" : "Copy"}
+             </Button>
+          </div>
+
           {loading ? (
             <div className="flex justify-center py-8">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-slate-600" />
@@ -74,6 +105,7 @@ export function MembersDialog({ groupId, isAdmin }: { groupId: string, isAdmin: 
                     <div>
                       <p className="text-sm font-medium leading-none text-slate-900">
                         {member.displayName}
+                        {member.isCurrentUser && " (You)"}
                       </p>
                       {member.isAdmin && (
                         <p className="text-[10px] uppercase tracking-wider text-blue-600 mt-0.5">
@@ -82,17 +114,32 @@ export function MembersDialog({ groupId, isAdmin }: { groupId: string, isAdmin: 
                       )}
                     </div>
                   </div>
-                  {isAdmin && !member.isAdmin && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-slate-400 hover:text-red-600"
-                      onClick={() => handleRemoveMember(member.id)}
-                      disabled={pending}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Remove</span>
-                    </Button>
+                  {isAdmin && !member.isCurrentUser && (
+                    <div className="flex items-center">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`h-8 w-8 ${member.isAdmin ? "text-blue-600 hover:text-blue-700" : "text-slate-400 hover:text-slate-600"} ${!member.isUser ? "opacity-30 cursor-not-allowed" : ""}`}
+                            onClick={() => member.isUser && handleToggleAdmin(member.id)}
+                            disabled={pending || !member.isUser}
+                            title={!member.isUser ? "Only registered users can be admins" : (member.isAdmin ? "Remove admin" : "Make admin")}
+                        >
+                            {member.isAdmin ? <ShieldCheck className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
+                            <span className="sr-only">{member.isAdmin ? "Remove admin" : "Make admin"}</span>
+                        </Button>
+                        {!member.isAdmin && (
+                            <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-slate-400 hover:text-red-600"
+                            onClick={() => handleRemoveMember(member.id)}
+                            disabled={pending}
+                            >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Remove</span>
+                            </Button>
+                        )}
+                    </div>
                   )}
                 </div>
               ))}
@@ -106,4 +153,3 @@ export function MembersDialog({ groupId, isAdmin }: { groupId: string, isAdmin: 
     </Dialog>
   );
 }
-

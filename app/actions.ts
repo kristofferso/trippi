@@ -58,17 +58,6 @@ async function getMember(memberId: string) {
   });
 }
 
-async function ensureSessionForGroup(groupId: string) {
-  const member = await getCurrentMember(groupId);
-  if (!member) return null;
-  // Wrap in object to maintain compatibility if needed, or refactor callers
-  // For now, actions seem to expect just session or similar.
-  // Actually, actions usually called getSession() -> session.memberId
-  // We will return an object that mimics what's needed: { memberId: member.id }
-  // But we should really refactor the callers to use the member object directly.
-  return { memberId: member.id, groupId: member.groupId };
-}
-
 async function ensureAdmin(groupId: string) {
   const member = await getCurrentMember(groupId);
   if (!member || !member.isAdmin) return null;
@@ -547,21 +536,58 @@ export async function deleteMember(memberId: string) {
   return { success: true };
 }
 
+export async function toggleAdmin(memberId: string) {
+  const member = await getMember(memberId);
+  if (!member) return { error: "Member missing" };
+
+  const admin = await ensureAdmin(member.groupId);
+  if (!admin) return { error: "Admins only" };
+
+  if (admin.member.id === memberId)
+    return { error: "Cannot change your own role" };
+
+  if (!member.userId) {
+    return { error: "Only registered users can be admins" };
+  }
+
+  await db
+    .update(groupMembers)
+    .set({ isAdmin: !member.isAdmin })
+    .where(eq(groupMembers.id, memberId));
+
+  const group = await db.query.groups.findFirst({
+    where: eq(groups.id, member.groupId),
+  });
+
+  if (group) {
+    revalidatePath(`/g/${group.slug}`);
+  }
+
+  return { success: true, isAdmin: !member.isAdmin };
+}
+
 export async function getGroupMembers(groupId: string) {
   // Allow anyone to see members? Or just members?
   // Previously it checked for session.
-  const member = await getCurrentMember(groupId);
-  if (!member) return [];
+  const currentMember = await getCurrentMember(groupId);
+  if (!currentMember) return [];
 
-  return db
+  const members = await db
     .select({
       id: groupMembers.id,
       displayName: groupMembers.displayName,
       isAdmin: groupMembers.isAdmin,
+      userId: groupMembers.userId,
     })
     .from(groupMembers)
     .where(eq(groupMembers.groupId, groupId))
     .orderBy(desc(groupMembers.createdAt));
+
+  return members.map((m) => ({
+    ...m,
+    isCurrentUser: m.id === currentMember.id,
+    isUser: !!m.userId,
+  }));
 }
 
 export async function getReactionDetails(postId: string, emoji: string | null) {

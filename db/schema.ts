@@ -1,4 +1,4 @@
-import { relations } from 'drizzle-orm';
+import { relations } from "drizzle-orm";
 import {
   AnyPgColumn,
   boolean,
@@ -6,101 +6,127 @@ import {
   text,
   timestamp,
   uuid,
-  json
-} from 'drizzle-orm/pg-core';
+  json,
+} from "drizzle-orm/pg-core";
 
-export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  email: text('email').unique().notNull(),
-  username: text('username').unique(),
-  passwordHash: text('password_hash').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const userSessions = pgTable('user_sessions', {
-  id: text('id').primaryKey(),
-  userId: uuid('user_id')
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").unique().notNull(),
+  username: text("username").unique(),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  expiresAt: timestamp('expires_at', { withTimezone: true }),
+    .defaultNow(),
 });
 
-export const groups = pgTable('groups', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  slug: text('slug').notNull().unique(),
-  name: text('name').notNull(),
-  passwordHash: text('password_hash'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const groupMembers = pgTable('group_members', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  groupId: uuid('group_id')
+export const userSessions = pgTable("user_sessions", {
+  id: text("id").primaryKey(),
+  userId: uuid("user_id")
     .notNull()
-    .references(() => groups.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
-  displayName: text('display_name').notNull(),
-  email: text('email'),
-  isAdmin: boolean('is_admin').notNull().default(false),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
 });
 
-export const memberSessions = pgTable('member_sessions', {
-  id: text('id').primaryKey(),
-  groupId: uuid('group_id')
+export const groups = pgTable("groups", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  passwordHash: text("password_hash"),
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
-    .references(() => groups.id, { onDelete: 'cascade' }),
-  memberId: uuid('member_id').references(() => groupMembers.id, {
-    onDelete: 'set null',
+    .defaultNow(),
+});
+
+export const groupMembers = pgTable("group_members", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  groupId: uuid("group_id")
+    .notNull()
+    .references(() => groups.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  displayName: text("display_name").notNull(),
+  email: text("email"),
+  isAdmin: boolean("is_admin").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const memberSessions = pgTable("member_sessions", {
+  id: text("id").primaryKey(),
+  groupId: uuid("group_id")
+    .notNull()
+    .references(() => groups.id, { onDelete: "cascade" }),
+  memberId: uuid("member_id").references(() => groupMembers.id, {
+    onDelete: "set null",
   }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
 });
 
-export const posts = pgTable('posts', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  groupId: uuid('group_id')
+export const posts = pgTable("posts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  groupId: uuid("group_id")
     .notNull()
-    .references(() => groups.id, { onDelete: 'cascade' }),
-  authorId: uuid('author_id')
+    .references(() => groups.id, { onDelete: "cascade" }),
+  authorId: uuid("author_id")
     .notNull()
-    .references(() => groupMembers.id, { onDelete: 'cascade' }),
-  title: text('title'),
-  body: text('body'),
+    .references(() => groupMembers.id, { onDelete: "cascade" }),
+  title: text("title"),
+  body: text("body"),
   // Deprecated columns (keeping for now to avoid data loss until migration script is run)
-  videoUrl: text('video_url'),
-  imageUrls: text('image_urls').array(),
+  videoUrl: text("video_url"),
+  imageUrls: text("image_urls").array(),
   // New column for unified media
-  media: json('media').$type<{ type: 'image' | 'video'; url: string; thumbnailUrl?: string; width?: number; height?: number }[]>().default([]),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  media: json("media")
+    .$type<
+      {
+        type: "image" | "video";
+        url: string;
+        thumbnailUrl?: string;
+        width?: number;
+        height?: number;
+      }[]
+    >()
+    .default([]),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
-export const comments = pgTable('comments', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  postId: uuid('post_id')
+export const comments = pgTable("comments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  postId: uuid("post_id")
     .notNull()
-    .references(() => posts.id, { onDelete: 'cascade' }),
-  memberId: uuid('member_id')
+    .references(() => posts.id, { onDelete: "cascade" }),
+  memberId: uuid("member_id")
     .notNull()
-    .references(() => groupMembers.id, { onDelete: 'cascade' }),
-  parentId: uuid('parent_id').references((): AnyPgColumn => comments.id, {
-    onDelete: 'cascade',
+    .references(() => groupMembers.id, { onDelete: "cascade" }),
+  parentId: uuid("parent_id").references((): AnyPgColumn => comments.id, {
+    onDelete: "cascade",
   }),
-  text: text('text').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  text: text("text").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
-export const reactions = pgTable('reactions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  postId: uuid('post_id')
+export const reactions = pgTable("reactions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  postId: uuid("post_id")
     .notNull()
-    .references(() => posts.id, { onDelete: 'cascade' }),
-  memberId: uuid('member_id')
+    .references(() => posts.id, { onDelete: "cascade" }),
+  memberId: uuid("member_id")
     .notNull()
-    .references(() => groupMembers.id, { onDelete: 'cascade' }),
-  emoji: text('emoji').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    .references(() => groupMembers.id, { onDelete: "cascade" }),
+  emoji: text("emoji").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const userRelations = relations(users, ({ many }) => ({
@@ -171,10 +197,10 @@ export const commentRelations = relations(comments, ({ one, many }) => ({
   parent: one(comments, {
     fields: [comments.parentId],
     references: [comments.id],
-    relationName: 'parent_child',
+    relationName: "parent_child",
   }),
   replies: many(comments, {
-    relationName: 'parent_child',
+    relationName: "parent_child",
   }),
 }));
 
