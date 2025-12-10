@@ -1,14 +1,46 @@
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
+import type { Metadata } from "next";
 
 import { PasswordGate } from "@/components/password-gate";
 import { NameDialog } from "@/components/name-dialog";
 import { db } from "@/db";
-import { groups } from "@/db/schema";
+import { groups, posts } from "@/db/schema";
 import { getCurrentMember, getMemberSession } from "@/lib/session";
 import { GroupPostGrid } from "@/components/group-post-grid";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const group = await db.query.groups.findFirst({
+    where: eq(groups.slug, slug),
+  });
+
+  if (!group) return { title: "Group Not Found" };
+
+  const imageUrl = "/trippi.png";
+
+  return {
+    title: group.name,
+    description: `Join ${group.name} on Trippi`,
+    openGraph: {
+      title: group.name,
+      description: `Join ${group.name} on Trippi`,
+      images: [imageUrl],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: group.name,
+      description: `Join ${group.name} on Trippi`,
+      images: [imageUrl],
+    },
+  };
+}
 
 export default async function GroupFeedPage({
   params,

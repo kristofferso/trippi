@@ -1,6 +1,6 @@
 "use server";
 
-import { count, desc, eq, and } from "drizzle-orm";
+import { count, desc, eq, and, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -30,6 +30,27 @@ const displayNameSchema = z.object({
   displayName: z.string().min(2, "Please enter a name"),
   email: z.string().email().optional().or(z.literal("")), // allow empty string
 });
+
+async function findUnlinkedMember(
+  groupId: string,
+  displayName: string,
+  email?: string | null
+) {
+  const nameMatch = sql`lower(${groupMembers.displayName}) = lower(${displayName})`;
+  const emailMatch = email
+    ? sql`lower(${groupMembers.email}) = lower(${email})`
+    : undefined;
+
+  const matchCondition = emailMatch ? or(nameMatch, emailMatch) : nameMatch;
+
+  return db.query.groupMembers.findFirst({
+    where: and(
+      eq(groupMembers.groupId, groupId),
+      isNull(groupMembers.userId),
+      matchCondition
+    ),
+  });
+}
 
 async function getMember(memberId: string) {
   return db.query.groupMembers.findFirst({
@@ -93,17 +114,42 @@ export async function joinGroupBySlug(
     // Check if user is logged in platform-side to link account
     const userSession = await getUserSession();
 
-    const [newMember] = await db
-      .insert(groupMembers)
-      .values({
-        groupId: group.id,
-        displayName: parsed.data.displayName,
-        email: parsed.data.email || null,
-        isAdmin,
-        userId: userSession?.userId || null,
-      })
-      .returning();
-    memberId = newMember.id;
+    // Check for existing unlinked member to inhabit
+    const existingMember = await findUnlinkedMember(
+      group.id,
+      parsed.data.displayName,
+      parsed.data.email
+    );
+
+    if (existingMember) {
+      memberId = existingMember.id;
+      // Link if logged in
+      if (userSession?.userId) {
+        await db
+          .update(groupMembers)
+          .set({ userId: userSession.userId })
+          .where(eq(groupMembers.id, memberId));
+      }
+      // Update email if provided and missing
+      if (parsed.data.email && !existingMember.email) {
+        await db
+          .update(groupMembers)
+          .set({ email: parsed.data.email })
+          .where(eq(groupMembers.id, memberId));
+      }
+    } else {
+      const [newMember] = await db
+        .insert(groupMembers)
+        .values({
+          groupId: group.id,
+          displayName: parsed.data.displayName,
+          email: parsed.data.email || null,
+          isAdmin,
+          userId: userSession?.userId || null,
+        })
+        .returning();
+      memberId = newMember.id;
+    }
   }
 
   // Only create a guest session if we aren't logged in as a user
@@ -186,16 +232,46 @@ export async function setDisplayName(
     .where(eq(groupMembers.groupId, groupId));
   const isAdmin = (memberCount[0]?.value ?? 0) === 0;
 
-  const [newMember] = await db
-    .insert(groupMembers)
-    .values({
-      groupId: groupId,
-      displayName: parsed.data.displayName,
-      email: parsed.data.email || null,
-      isAdmin,
-      userId: userSession?.userId || null,
-    })
-    .returning();
+  // Check for existing unlinked member to inhabit
+  const existingMember = await findUnlinkedMember(
+    groupId,
+    parsed.data.displayName,
+    parsed.data.email
+  );
+
+  let newMember;
+
+  if (existingMember) {
+    newMember = existingMember;
+    // Link if logged in
+    if (userSession?.userId) {
+      await db
+        .update(groupMembers)
+        .set({ userId: userSession.userId })
+        .where(eq(groupMembers.id, newMember.id));
+    }
+    // Update email if provided and missing
+    if (parsed.data.email && !existingMember.email) {
+      await db
+        .update(groupMembers)
+        .set({ email: parsed.data.email })
+        .where(eq(groupMembers.id, newMember.id));
+      // Update local object to return correct data
+      newMember.email = parsed.data.email;
+    }
+  } else {
+    const [inserted] = await db
+      .insert(groupMembers)
+      .values({
+        groupId: groupId,
+        displayName: parsed.data.displayName,
+        email: parsed.data.email || null,
+        isAdmin,
+        userId: userSession?.userId || null,
+      })
+      .returning();
+    newMember = inserted;
+  }
 
   if (!userSession) {
     // Create session for guest
@@ -502,6 +578,13 @@ const authSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
+async function linkGuestMemberships(userId: string, email: string) {
+  await db
+    .update(groupMembers)
+    .set({ userId })
+    .where(and(eq(groupMembers.email, email), isNull(groupMembers.userId)));
+}
+
 export async function registerAction(formData: FormData) {
   const data = Object.fromEntries(formData);
   const parsed = authSchema.safeParse(data);
@@ -525,6 +608,7 @@ export async function registerAction(formData: FormData) {
     .returning();
 
   await createUserSession(user.id);
+  await linkGuestMemberships(user.id, email);
   return { success: true };
 }
 
@@ -549,6 +633,7 @@ export async function loginAction(formData: FormData) {
   if (!valid) return { error: "Invalid credentials" };
 
   await createUserSession(user.id);
+  await linkGuestMemberships(user.id, email);
   return { success: true };
 }
 

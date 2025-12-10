@@ -21,6 +21,7 @@ async function setMemberSessionCookie(id: string) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
+    maxAge: 60 * 60 * 24 * 90, // 90 days
   });
 }
 
@@ -92,6 +93,7 @@ export async function createUserSession(userId: string) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
+    maxAge: 60 * 60 * 24 * 90, // 90 days
   });
 
   return id;
