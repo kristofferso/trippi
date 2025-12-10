@@ -472,11 +472,23 @@ export async function addReaction(postId: string, emoji: string) {
   const member = await getCurrentMember(post.groupId);
   if (!member) return { error: "Need display name", needsProfile: true };
 
-  await db.insert(reactions).values({
-    postId,
-    memberId: member.id,
-    emoji,
+  const existing = await db.query.reactions.findFirst({
+    where: and(
+      eq(reactions.postId, postId),
+      eq(reactions.memberId, member.id),
+      eq(reactions.emoji, emoji)
+    ),
   });
+
+  if (existing) {
+    await db.delete(reactions).where(eq(reactions.id, existing.id));
+  } else {
+    await db.insert(reactions).values({
+      postId,
+      memberId: member.id,
+      emoji,
+    });
+  }
 
   const group = await db.query.groups.findFirst({
     where: eq(groups.id, post.groupId),
@@ -487,7 +499,7 @@ export async function addReaction(postId: string, emoji: string) {
     revalidatePath(`/g/${group.slug}`);
   }
 
-  return { success: true };
+  return { success: true, action: existing ? "removed" : "added" };
 }
 
 export async function deleteComment(commentId: string) {

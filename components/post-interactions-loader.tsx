@@ -1,7 +1,8 @@
-import { count, desc, eq } from "drizzle-orm";
+import { count, desc, eq, and } from "drizzle-orm";
 import { db } from "@/db";
 import { comments, groupMembers, reactions } from "@/db/schema";
 import { PostInteractionLayer } from "@/components/post-interaction-layer";
+import { getCurrentMember } from "@/lib/session";
 
 export async function PostInteractionsLoader({
   postId,
@@ -49,6 +50,21 @@ export async function PostInteractionsLoader({
     },
   }));
 
+  const member = await getCurrentMember(post.groupId);
+  let userReactions: string[] = [];
+  if (member) {
+    const myReactions = await db.query.reactions.findMany({
+      where: and(
+        eq(reactions.postId, postId),
+        eq(reactions.memberId, member.id)
+      ),
+      columns: {
+        emoji: true,
+      },
+    });
+    userReactions = myReactions.map((r) => r.emoji);
+  }
+
   return (
     <PostInteractionLayer
       postId={postId}
@@ -56,6 +72,7 @@ export async function PostInteractionsLoader({
       counts={reactionCounts}
       comments={commentsWithAuthors}
       isAdmin={isAdmin}
+      userReactions={userReactions}
     />
   );
 }

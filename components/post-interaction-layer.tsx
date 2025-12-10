@@ -1,6 +1,14 @@
 "use client";
 
-import { useMemo, useState, useTransition, useOptimistic } from "react";
+import {
+  useMemo,
+  useState,
+  useTransition,
+  useOptimistic,
+  useRef,
+  useCallback,
+  useEffect,
+} from "react";
 import { MessageCircle, Smile, Plus } from "lucide-react";
 import { EmojiRain } from "@/components/emoji-rain";
 import { ReactionListDialog } from "@/components/reaction-list-dialog";
@@ -66,6 +74,7 @@ type Props = {
   counts: Record<string, number>;
   comments: CommentWithAuthor[];
   isAdmin: boolean;
+  userReactions: string[];
 };
 
 export function PostInteractionLayer({
@@ -74,13 +83,24 @@ export function PostInteractionLayer({
   counts,
   comments,
   isAdmin,
+  userReactions,
 }: Props) {
-  const [optimisticCounts, addOptimisticReaction] = useOptimistic(
-    counts,
-    (state, newEmoji: string) => ({
-      ...state,
-      [newEmoji]: (state[newEmoji] ?? 0) + 1,
-    })
+  const [optimisticState, addOptimisticReaction] = useOptimistic(
+    { counts, userReactions },
+    (state, emoji: string) => {
+      const hasReacted = state.userReactions.includes(emoji);
+      const newCounts = { ...state.counts };
+      let newUserReactions = [...state.userReactions];
+
+      if (hasReacted) {
+        newCounts[emoji] = Math.max(0, (newCounts[emoji] || 0) - 1);
+        newUserReactions = newUserReactions.filter((e) => e !== emoji);
+      } else {
+        newCounts[emoji] = (newCounts[emoji] || 0) + 1;
+        newUserReactions.push(emoji);
+      }
+      return { counts: newCounts, userReactions: newUserReactions };
+    }
   );
 
   const [optimisticComments, addOptimisticComment] = useOptimistic(
@@ -103,12 +123,12 @@ export function PostInteractionLayer({
   const [customEmoji, setCustomEmoji] = useState("");
 
   const activeReactions = useMemo(() => {
-    return Object.entries(optimisticCounts)
+    return Object.entries(optimisticState.counts)
       .filter(([_, count]) => count > 0)
       .sort((a, b) => b[1] - a[1]); // Sort by count desc
-  }, [optimisticCounts]);
+  }, [optimisticState.counts]);
 
-  const totalReactions = Object.values(optimisticCounts).reduce(
+  const totalReactions = Object.values(optimisticState.counts).reduce(
     (a, b) => a + b,
     0
   );
@@ -118,9 +138,12 @@ export function PostInteractionLayer({
     setCustomEmojiDialogOpen(false);
     setCustomEmoji("");
 
-    // Trigger rain
-    setActiveRainEmoji(null);
-    setTimeout(() => setActiveRainEmoji(emoji), 10);
+    // Trigger rain only if adding
+    const isAdding = !optimisticState.userReactions.includes(emoji);
+    if (isAdding) {
+      setActiveRainEmoji(null);
+      setTimeout(() => setActiveRainEmoji(emoji), 10);
+    }
 
     startTransition(async () => {
       addOptimisticReaction(emoji);
@@ -166,17 +189,17 @@ export function PostInteractionLayer({
           {activeReactions.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {activeReactions.map(([emoji, count]) => (
-                <button
+                <ReactionButton
                   key={emoji}
-                  onClick={() => {
+                  emoji={emoji}
+                  count={count}
+                  hasReacted={optimisticState.userReactions.includes(emoji)}
+                  onClick={() => handleReact(emoji)}
+                  onLongPress={() => {
                     setSelectedEmojiForList(emoji);
                     setReactionListOpen(true);
                   }}
-                  className="flex items-center gap-1 rounded-full bg-black/40 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm hover:bg-black/60 transition-colors"
-                >
-                  <span className="text-sm">{emoji}</span>
-                  <span>{count}</span>
-                </button>
+                />
               ))}
             </div>
           )}
@@ -202,7 +225,7 @@ export function PostInteractionLayer({
                   <Smile
                     className={cn(
                       "h-7 w-7",
-                      (optimisticCounts["❤️"] || 0) > 0
+                      (optimisticState.counts["❤️"] || 0) > 0
                         ? "text-yellow-400 fill-yellow-400"
                         : "text-white"
                     )}
@@ -333,4 +356,123 @@ export function PostInteractionLayer({
       />
     </>
   );
+}
+
+function ReactionButton({
+  emoji,
+  count,
+  hasReacted,
+  onClick,
+  onLongPress,
+}: {
+  emoji: string;
+  count: number;
+  hasReacted: boolean;
+  onClick: () => void;
+  onLongPress: () => void;
+}) {
+  const handlers = useLongPress({
+    onClick,
+    onLongPress,
+    onDoubleClick: onLongPress,
+  });
+
+  return (
+    <button
+      {...handlers}
+      className={cn(
+        "flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-white backdrop-blur-sm transition-colors select-none",
+        hasReacted
+          ? "bg-white/20 ring-1 ring-white/50 hover:bg-white/30"
+          : "bg-black/40 hover:bg-black/60"
+      )}
+    >
+      <span className="text-sm">{emoji}</span>
+      <span>{count}</span>
+    </button>
+  );
+}
+
+function useLongPress({
+  onClick,
+  onLongPress,
+  onDoubleClick,
+  delay = 500,
+}: {
+  onClick: () => void;
+  onLongPress: () => void;
+  onDoubleClick: () => void;
+  delay?: number;
+}) {
+  const [longPressTriggered, setLongPressTriggered] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const clickTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const clickCountRef = useRef(0);
+  const targetRef = useRef<EventTarget | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
+    };
+  }, []);
+
+  const start = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      setLongPressTriggered(false);
+      targetRef.current = e.target;
+      timeoutRef.current = setTimeout(() => {
+        setLongPressTriggered(true);
+        onLongPress();
+      }, delay);
+    },
+    [onLongPress, delay]
+  );
+
+  const clear = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
+    }
+    targetRef.current = null;
+  }, []);
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+
+      if (longPressTriggered) {
+        setLongPressTriggered(false);
+        return;
+      }
+
+      clickCountRef.current += 1;
+
+      if (clickCountRef.current === 1) {
+        clickTimeoutRef.current = setTimeout(() => {
+          if (clickCountRef.current === 1) {
+            onClick();
+          }
+          clickCountRef.current = 0;
+        }, 250);
+      } else if (clickCountRef.current === 2) {
+        if (clickTimeoutRef.current) {
+          clearTimeout(clickTimeoutRef.current);
+          clickTimeoutRef.current = undefined;
+        }
+        clickCountRef.current = 0;
+        onDoubleClick();
+      }
+    },
+    [longPressTriggered, onClick, onDoubleClick]
+  );
+
+  return {
+    onMouseDown: start,
+    onTouchStart: start,
+    onMouseUp: clear,
+    onMouseLeave: clear,
+    onTouchEnd: clear,
+    onClick: handleClick,
+  };
 }
