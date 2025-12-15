@@ -1,10 +1,9 @@
+import { cn } from "@/lib/utils";
+import { Analytics } from "@vercel/analytics/next";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { Analytics } from "@vercel/analytics/next";
-import { cn } from "@/lib/utils";
-import { IosPwaBanner } from "@/components/ios-pwa-banner";
 
 export const metadata: Metadata = {
   title: "Trippy",
@@ -30,10 +29,7 @@ export default function RootLayout({
           GeistMono.variable
         )}
       >
-        <div className="safe-area-wrapper">
-          {children}
-          <IosPwaBanner />
-        </div>
+        <div className="safe-area-wrapper">{children}</div>
         <Analytics />
       </body>
     </html>

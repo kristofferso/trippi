@@ -14,7 +14,6 @@ import { VideoPlayer } from "@/components/video-player";
 import { db } from "@/db";
 import { posts } from "@/db/schema";
 import { PostInteractionsLoader } from "@/components/post-interactions-loader";
-import { CollapsibleText } from "@/components/collapsible-text";
 
 export async function PostDetailContent({
   postId,
@@ -92,12 +91,7 @@ export async function PostDetailContent({
               </h1>
               {post.body && (
                 <div className="prose prose-invert prose-lg max-w-none text-slate-200">
-                  <CollapsibleText
-                    text={post.body}
-                    className="text-slate-100"
-                    fadeClassName="from-slate-950/90 via-slate-800/40"
-                    buttonVariant="secondary"
-                  />
+                  <p>{post.body}</p>
                 </div>
               )}
             </div>

@@ -1,17 +1,11 @@
 "use client";
 
-import {
-  useMemo,
-  useState,
-  useTransition,
-  useOptimistic,
-  useRef,
-  useCallback,
-  useEffect,
-} from "react";
-import { MessageCircle, Smile, Plus } from "lucide-react";
+import { addReaction } from "@/app/actions";
+import { CommentForm } from "@/components/comment-form";
+import { CommentList, type CommentWithAuthor } from "@/components/comment-list";
 import { EmojiRain } from "@/components/emoji-rain";
 import { ReactionListDialog } from "@/components/reaction-list-dialog";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +14,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import {
   Drawer,
   DrawerContent,
@@ -28,14 +21,27 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { Button } from "@/components/ui/button";
-import { CommentList, type CommentWithAuthor } from "@/components/comment-list";
-import { CommentForm } from "@/components/comment-form";
-import { addReaction } from "@/app/actions";
-import { cn, formatDate } from "@/lib/utils";
-import { setNameDialogOpen } from "@/lib/store";
+import { Input } from "@/components/ui/input";
 import { Post } from "@/db/schema";
-import { CollapsibleText } from "@/components/collapsible-text";
+import { setNameDialogOpen } from "@/lib/store";
+import { cn, formatDate } from "@/lib/utils";
+import {
+  LaughIcon,
+  MessageCircle,
+  Plus,
+  Smile,
+  SmilePlus,
+  X,
+} from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
 const ALL_EMOJIS = [
   "👍",
@@ -163,24 +169,22 @@ export function PostInteractionLayer({
         <div className="space-y-3 pointer-events-auto flex-1 min-w-0">
           {/* Text Info */}
           {isMediaPost && (
-              <div className="space-y-2">
-                <h1 className="text-lg font-bold text-white drop-shadow-md line-clamp-2">
-                  {post.title || "Untitled Post"}
-                </h1>
-                <div className="flex items-center gap-2 text-xs text-slate-300">
-                  <time dateTime={new Date(post.createdAt).toISOString()}>
-                    {formatDate(post.createdAt)}
-                  </time>
-                </div>
-                {post.body && (
-                  <CollapsibleText
-                    text={post.body}
-                    className="text-white/90 drop-shadow-sm"
-                    fadeClassName="from-black/80 via-black/40"
-                  />
-                )}
+            <div className="space-y-2">
+              <h1 className="text-lg font-bold text-white drop-shadow-md line-clamp-2">
+                {post.title || "Untitled Post"}
+              </h1>
+              <div className="flex items-center gap-2 text-xs text-slate-300">
+                <time dateTime={new Date(post.createdAt).toISOString()}>
+                  {formatDate(post.createdAt)}
+                </time>
               </div>
-            )}
+              {post.body && (
+                <p className="text-sm text-white/90 drop-shadow-sm line-clamp-3">
+                  {post.body}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Existing Reactions */}
           {activeReactions.length > 0 && (
@@ -219,14 +223,7 @@ export function PostInteractionLayer({
                     pending && "opacity-70"
                   )}
                 >
-                  <Smile
-                    className={cn(
-                      "h-7 w-7",
-                      (optimisticState.counts["❤️"] || 0) > 0
-                        ? "text-yellow-400 fill-yellow-400"
-                        : "text-white"
-                    )}
-                  />
+                  <Smile className="size-5" />
                 </Button>
                 <span className="text-xs font-bold text-white shadow-black drop-shadow-md">
                   {totalReactions}
@@ -257,7 +254,7 @@ export function PostInteractionLayer({
                   >
                     <DialogTrigger asChild>
                       <button className="flex aspect-square items-center justify-center rounded-xl bg-slate-100 text-2xl hover:bg-slate-200 active:scale-90 transition-transform text-slate-500">
-                        <Plus className="h-6 w-6" />
+                        <Plus className="size-5" />
                       </button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
