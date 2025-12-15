@@ -63,7 +63,7 @@ export function NameDialog({ groupId }: { groupId?: string }) {
       open={nameDialogOpen}
       onOpenChange={(open) => !open && handleClose()}
     >
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg w-full rounded-t-3xl sm:rounded-2xl border-0 p-6 pb-7 shadow-2xl sm:shadow-xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-bottom-8 data-[state=closed]:slide-out-to-bottom-8 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
         <DialogHeader>
           <DialogTitle>Choose a display name</DialogTitle>
           <DialogDescription>

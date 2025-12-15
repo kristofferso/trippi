@@ -35,6 +35,7 @@ import { addReaction } from "@/app/actions";
 import { cn, formatDate } from "@/lib/utils";
 import { setNameDialogOpen } from "@/lib/store";
 import { Post } from "@/db/schema";
+import { CollapsibleText } from "@/components/collapsible-text";
 
 const ALL_EMOJIS = [
   "👍",
@@ -162,22 +163,24 @@ export function PostInteractionLayer({
         <div className="space-y-3 pointer-events-auto flex-1 min-w-0">
           {/* Text Info */}
           {isMediaPost && (
-            <div className="space-y-2">
-              <h1 className="text-lg font-bold text-white drop-shadow-md line-clamp-2">
-                {post.title || "Untitled Post"}
-              </h1>
-              <div className="flex items-center gap-2 text-xs text-slate-300">
-                <time dateTime={new Date(post.createdAt).toISOString()}>
-                  {formatDate(post.createdAt)}
-                </time>
+              <div className="space-y-2">
+                <h1 className="text-lg font-bold text-white drop-shadow-md line-clamp-2">
+                  {post.title || "Untitled Post"}
+                </h1>
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <time dateTime={new Date(post.createdAt).toISOString()}>
+                    {formatDate(post.createdAt)}
+                  </time>
+                </div>
+                {post.body && (
+                  <CollapsibleText
+                    text={post.body}
+                    className="text-white/90 drop-shadow-sm"
+                    fadeClassName="from-black/80 via-black/40"
+                  />
+                )}
               </div>
-              {post.body && (
-                <p className="text-sm text-white/90 drop-shadow-sm line-clamp-3">
-                  {post.body}
-                </p>
-              )}
-            </div>
-          )}
+            )}
 
           {/* Existing Reactions */}
           {activeReactions.length > 0 && (
