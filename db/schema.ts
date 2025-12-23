@@ -50,6 +50,10 @@ export const groupMembers = pgTable("group_members", {
   userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
   displayName: text("display_name").notNull(),
   email: text("email"),
+  emailNotificationsEnabled: boolean("email_notifications_enabled")
+    .notNull()
+    .default(true),
+  emailUnsubscribedAt: timestamp("email_unsubscribed_at", { withTimezone: true }),
   isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

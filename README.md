@@ -31,8 +31,8 @@ pnpm install
 Copy the environment example and fill in your Postgres connection string:
 
 ```bash
-cp .env.example .env
-# edit .env to set POSTGRES_URL
+cp env.example .env
+# edit .env to set POSTGRES_URL (and other env vars as needed)
 ```
 
 ### Database setup
@@ -62,14 +62,30 @@ Open [http://localhost:3000](http://localhost:3000) to create or join a circle.
 
 ### Deploying
 
-1. `BASE_URL`: Set this to your production domain.
-2. `STRIPE_SECRET_KEY`: Use your Stripe secret key for the production environment.
-3. `STRIPE_WEBHOOK_SECRET`: Use the webhook secret from the production webhook you created in step 1.
-4. `POSTGRES_URL`: Set this to your production database URL.
-5. `AUTH_SECRET`: Set this to a random string. `openssl rand -base64 32` will generate one.
-6. `BLOB_READ_WRITE_TOKEN`: Needed for uploading videos to Vercel Blob storage. Create a Blob store in your Vercel dashboard
-   (or via the Vercel CLI) and add a read/write token to your environment variables so `@vercel/blob` can call
-   `put()` when handling uploads.
+1. `POSTGRES_URL`: Set this to your production database URL.
+2. `BLOB_READ_WRITE_TOKEN`: Needed for uploading media to Vercel Blob storage (used by `@vercel/blob`).
+3. `APP_URL`: Your public site URL (used for absolute links in emails).
+4. `RESEND_API_KEY`: Resend API key.
+5. `RESEND_FROM`: Verified sending identity (e.g. `Trippi <[email protected]>`).
+6. `EMAIL_LINK_SECRET`: Random string used to sign email links (auto-login + unsubscribe).
+7. `CRON_SECRET`: Random string used to protect the daily email cron endpoint.
+
+### Daily email notifications (cron)
+
+The posts update email job is exposed at `GET /api/cron/posts-update`.
+
+- **Auth**:
+  - On Vercel Cron, requests include `x-vercel-cron: 1` (accepted automatically), and `vercel.json` schedules it.
+  - For manual triggering, send either `Authorization: Bearer $CRON_SECRET` or add `?key=$CRON_SECRET` to the URL.
+- **What it does**: Finds posts from the last 24 hours and emails all `group_members` that have an `email` and `email_notifications_enabled = true`.
+- **Unsubscribe**: Emails include an unsubscribe link that sets `group_members.email_notifications_enabled = false` and records `email_unsubscribed_at`.
+
+You can trigger it manually:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/posts-update"
+```
+
 When deploying (e.g., to Vercel), add the same `POSTGRES_URL` environment variable in your project settings so the app can reach your production database.
 
 ## Other Templates
