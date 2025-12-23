@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { unsubscribeAction } from "./page";
+import { unsubscribeAction } from "./actions";
 
 type Props = {
   token: string | null | undefined;
