@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { and, eq, gte, isNotNull } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, isNull } from "drizzle-orm";
 
 import { db } from "@/db";
-import { groupMembers, groups, posts } from "@/db/schema";
+import { groupMembers, groups, posts, postViews } from "@/db/schema";
 import { resendSendEmail } from "@/lib/resend";
 import { renderNewPostsEmail } from "@/lib/email/new-posts-email";
 
@@ -41,7 +41,10 @@ export async function GET(req: Request) {
     );
   }
   if (!process.env.RESEND_FROM) {
-    return NextResponse.json({ error: "RESEND_FROM is not set" }, { status: 500 });
+    return NextResponse.json(
+      { error: "RESEND_FROM is not set" },
+      { status: 500 }
+    );
   }
   if (!process.env.EMAIL_LINK_SECRET) {
     return NextResponse.json(
@@ -96,18 +99,15 @@ export async function GET(req: Request) {
   let groupsWithPosts = 0;
   let totalRecipients = 0;
   let totalEmailsSent = 0;
-  const perGroup: Record<string, { posts: number; recipients: number; sent: number }> =
-    {};
+  const perGroup: Record<
+    string,
+    { posts: number; recipients: number; sent: number }
+  > = {};
 
   for (const [groupId, bundle] of postsByGroup.entries()) {
     groupsWithPosts++;
 
-    // Resolve group slug/name (bundle has it), but ensure group still exists.
-    const group = await db.query.groups.findFirst({
-      where: eq(groups.id, groupId),
-      columns: { id: true, name: true, slug: true },
-    });
-    if (!group) continue;
+    const group = bundle.group;
 
     // Safety: In test mode, DO NOT even query real recipients.
     const finalRecipients = testTo
@@ -123,27 +123,66 @@ export async function GET(req: Request) {
             and(
               eq(groupMembers.groupId, groupId),
               isNotNull(groupMembers.email),
-              eq(groupMembers.emailNotificationsEnabled, true)
+              eq(groupMembers.emailNotificationsEnabled, true),
+              isNull(groupMembers.emailUnsubscribedAt)
             )
           );
 
     totalRecipients += finalRecipients.length;
 
+    const postIds = bundle.posts.map((p) => p.id);
+    const recipientIds = finalRecipients.map((r) => r.id);
+
+    // Get all views for these posts and these recipients in one query
+    const views =
+      recipientIds.length > 0 && postIds.length > 0
+        ? await db
+            .select()
+            .from(postViews)
+            .where(
+              and(
+                inArray(postViews.memberId, recipientIds),
+                inArray(postViews.postId, postIds)
+              )
+            )
+        : [];
+
+    const viewsByMember = new Map<string, Set<string>>();
+    for (const v of views) {
+      if (!viewsByMember.has(v.memberId)) {
+        viewsByMember.set(v.memberId, new Set());
+      }
+      viewsByMember.get(v.memberId)!.add(v.postId);
+    }
+
     let sent = 0;
     for (const r of finalRecipients) {
-      const { subject, react } = renderNewPostsEmail({
-        group,
-        recipient: { id: r.id, displayName: r.displayName },
-        posts: bundle.posts,
-      });
+      // Filter the posts to only show unseen ones for this specific recipient.
+      const seenPostIds = viewsByMember.get(r.id) || new Set();
+      const unseenPosts = bundle.posts.filter((p) => !seenPostIds.has(p.id));
 
-      await resendSendEmail({
-        to: r.email!,
-        subject,
-        react,
-      });
-      sent++;
-      totalEmailsSent++;
+      if (unseenPosts.length === 0) continue;
+
+      try {
+        const { subject, react } = renderNewPostsEmail({
+          group,
+          recipient: { id: r.id, displayName: r.displayName },
+          posts: unseenPosts,
+        });
+
+        await resendSendEmail({
+          to: r.email!,
+          subject,
+          react,
+        });
+        sent++;
+        totalEmailsSent++;
+
+        // Add a small delay to avoid hitting Resend's rate limits (especially on free tier)
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error(`Failed to send email to ${r.email}:`, error);
+      }
     }
 
     perGroup[groupId] = {
@@ -164,5 +203,3 @@ export async function GET(req: Request) {
     perGroup,
   });
 }
-
-
